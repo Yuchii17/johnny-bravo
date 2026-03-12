@@ -26,12 +26,53 @@ if (isset($_POST['timeout_id'])) {
     }
 }
 
-$countToday = $conn->query("SELECT COUNT(*) as total FROM item_declarations WHERE declaration_date = CURDATE()")->fetch_assoc()['total'];
-$countActive = $conn->query("SELECT COUNT(*) as total FROM item_declarations WHERE status = 'Logged In'")->fetch_assoc()['total'];
-$countOut = $conn->query("SELECT COUNT(*) as total FROM item_declarations WHERE status = 'Logged Out'")->fetch_assoc()['total'];
+$dates_query = $conn->query("SELECT DISTINCT declaration_date FROM item_declarations ORDER BY declaration_date DESC");
+$available_dates = [];
+while ($d = $dates_query->fetch_assoc()) {
+    $available_dates[] = $d['declaration_date'];
+}
 
-$logs = $conn->query("SELECT d.*, u.fullname, u.role, s.shift_name FROM item_declarations d JOIN users u ON d.user_id = u.user_id JOIN schedules s ON d.shift_id = s.id ORDER BY d.created_at DESC");
-$history = $conn->query("SELECT * FROM security_logs ORDER BY created_at DESC LIMIT 5");
+$today = date('Y-m-d');
+if (!in_array($today, $available_dates)) {
+    array_unshift($available_dates, $today);
+}
+
+$filter_date = isset($_GET['filter_date']) ? $_GET['filter_date'] : $today;
+
+$stmt_today = $conn->prepare("SELECT COUNT(*) as total FROM item_declarations WHERE declaration_date = ?");
+$stmt_today->bind_param("s", $filter_date);
+$stmt_today->execute();
+$countToday = $stmt_today->get_result()->fetch_assoc()['total'];
+
+$stmt_active = $conn->prepare("SELECT COUNT(*) as total FROM item_declarations WHERE declaration_date = ? AND status = 'Logged In'");
+$stmt_active->bind_param("s", $filter_date);
+$stmt_active->execute();
+$countActive = $stmt_active->get_result()->fetch_assoc()['total'];
+
+$stmt_out = $conn->prepare("SELECT COUNT(*) as total FROM item_declarations WHERE declaration_date = ? AND status = 'Logged Out'");
+$stmt_out->bind_param("s", $filter_date);
+$stmt_out->execute();
+$countOut = $stmt_out->get_result()->fetch_assoc()['total'];
+
+$stmt_logs = $conn->prepare("
+    SELECT 
+        d.*, 
+        COALESCE(u.role, IF(d.user_id LIKE 'VIS-%', 'Visitor', 'OJT')) AS role, 
+        COALESCE(s.shift_name, 'No Shift / Visitor') AS shift_name 
+    FROM item_declarations d 
+    LEFT JOIN users u ON d.user_id = u.user_id 
+    LEFT JOIN schedules s ON d.shift_id = s.id 
+    WHERE d.declaration_date = ?
+    ORDER BY d.created_at DESC
+");
+$stmt_logs->bind_param("s", $filter_date);
+$stmt_logs->execute();
+$logs = $stmt_logs->get_result();
+
+$stmt_archive = $conn->prepare("SELECT * FROM item_declarations WHERE declaration_date = ? ORDER BY created_at DESC");
+$stmt_archive->bind_param("s", $filter_date);
+$stmt_archive->execute();
+$archive_logs = $stmt_archive->get_result();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -50,8 +91,23 @@ $history = $conn->query("SELECT * FROM security_logs ORDER BY created_at DESC LI
 <body class="flex h-screen overflow-hidden">
     <?php include 'sidebar.php'; ?>
     <main class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-8 shrink-0">
-            <h1 class="text-lg font-bold text-slate-800">Security Command Center</h1>
+        <header class="bg-white border-b border-slate-200 h-20 flex items-center justify-between px-8 shrink-0">
+            <div class="flex items-center gap-6">
+                <h1 class="text-lg font-bold text-slate-800">Security Command Center</h1>
+                <div class="h-8 w-px bg-slate-200"></div>
+                <form method="GET" class="flex items-center gap-2">
+                    <select name="filter_date" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <?php foreach($available_dates as $date): ?>
+                            <option value="<?php echo $date; ?>" <?php echo ($filter_date == $date) ? 'selected' : ''; ?>>
+                                <?php echo ($date == $today) ? 'Today (' . date('M d, Y', strtotime($date)) . ')' : date('M d, Y', strtotime($date)); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if($filter_date !== $today): ?>
+                        <a href="?" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">View Today</a>
+                    <?php endif; ?>
+                </form>
+            </div>
             <div class="flex items-center gap-4">
                 <div class="text-right">
                     <p class="text-sm font-bold text-slate-900"><?php echo htmlspecialchars($_SESSION['fullname']); ?></p>
@@ -63,100 +119,148 @@ $history = $conn->query("SELECT * FROM security_logs ORDER BY created_at DESC LI
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-5">
                     <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl"><i class="fas fa-file-alt"></i></div>
-                    <div><p class="text-xs text-slate-400 font-bold uppercase">Today</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countToday; ?></h3></div>
+                    <div><p class="text-xs text-slate-400 font-bold uppercase">Total Entries</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countToday; ?></h3></div>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-5">
                     <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl"><i class="fas fa-user-clock"></i></div>
-                    <div><p class="text-xs text-slate-400 font-bold uppercase">Active</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countActive; ?></h3></div>
+                    <div><p class="text-xs text-slate-400 font-bold uppercase">Logged In</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countActive; ?></h3></div>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-5">
                     <div class="w-14 h-14 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center text-2xl"><i class="fas fa-door-open"></i></div>
-                    <div><p class="text-xs text-slate-400 font-bold uppercase">Out</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countOut; ?></h3></div>
+                    <div><p class="text-xs text-slate-400 font-bold uppercase">Logged Out</p><h3 class="text-3xl font-black text-slate-800"><?php echo $countOut; ?></h3></div>
                 </div>
             </div>
+            
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="px-8 py-6 border-b border-slate-50"><h2 class="text-lg font-black text-slate-800">Personnel Entry Ledger</h2></div>
-                    <div class="overflow-x-auto">
+                <div class="lg:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[600px]">
+                    <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center shrink-0">
+                        <h2 class="text-lg font-black text-slate-800">Personnel Entry Ledger</h2>
+                        <span class="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg"><?php echo date('M d, Y', strtotime($filter_date)); ?></span>
+                    </div>
+                    <div class="overflow-auto flex-1">
                         <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">
-                                    <th class="px-8 py-4">Name/Role</th>
-                                    <th class="px-8 py-4">Time In</th>
-                                    <th class="px-8 py-4 text-center">Items</th>
-                                    <th class="px-8 py-4">Status</th>
-                                    <th class="px-8 py-4">Action</th>
+                            <thead class="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10">
+                                <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                    <th class="px-8 py-4 border-b border-slate-100">Name/Role</th>
+                                    <th class="px-8 py-4 border-b border-slate-100">Time In</th>
+                                    <th class="px-8 py-4 border-b border-slate-100 text-center">Items</th>
+                                    <th class="px-8 py-4 border-b border-slate-100">Status</th>
+                                    <th class="px-8 py-4 border-b border-slate-100">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-50 text-sm">
-                                <?php while($row = $logs->fetch_assoc()): ?>
-                                <tr class="hover:bg-slate-50/50">
-                                    <td class="px-8 py-5">
-                                        <div class="flex flex-col">
-                                            <span class="font-bold text-slate-800"><?php echo htmlspecialchars($row['fullname']); ?></span>
-                                            <span class="text-[9px] font-black uppercase text-indigo-500"><?php echo $row['role']; ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="px-8 py-5">
-                                        <p class="font-bold text-slate-700"><?php echo date("h:i A", strtotime($row['time_in'])); ?></p>
-                                        <p class="text-[10px] text-slate-400"><?php echo $row['shift_name']; ?></p>
-                                    </td>
-                                    <td class="px-8 py-5 text-center">
-                                        <button onclick='viewItems(<?php echo $row["items_json"]; ?>)' class="text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold">View</button>
-                                    </td>
-                                    <td class="px-8 py-5">
-                                        <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase <?php echo ($row['status'] == 'Logged In') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'; ?>">
-                                            <?php echo $row['status']; ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-8 py-5">
-                                        <?php if($row['status'] == 'Logged In'): ?>
-                                            <form method="POST"><input type="hidden" name="timeout_id" value="<?php echo $row['id']; ?>"><button type="submit" class="bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold">TIMEOUT</button></form>
-                                        <?php else: ?>
-                                            <p class="text-[10px] font-bold text-slate-400">OUT: <?php echo date("h:i A", strtotime($row['time_out'])); ?></p>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endwhile; ?>
+                                <?php if($logs->num_rows > 0): ?>
+                                    <?php while($row = $logs->fetch_assoc()): ?>
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="px-8 py-5">
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-slate-800"><?php echo htmlspecialchars($row['fullname']); ?></span>
+                                                <span class="text-[9px] font-black uppercase text-indigo-500"><?php echo htmlspecialchars($row['role']); ?></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <p class="font-bold text-slate-700"><?php echo date("h:i A", strtotime($row['time_in'])); ?></p>
+                                            <p class="text-[10px] text-slate-400"><?php echo htmlspecialchars($row['shift_name']); ?></p>
+                                        </td>
+                                        <td class="px-8 py-5 text-center">
+                                            <button 
+                                                onclick="viewItems(this)" 
+                                                data-items="<?php echo htmlspecialchars($row['items_json'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                class="text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
+                                                View
+                                            </button>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase <?php echo ($row['status'] == 'Logged In') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'; ?>">
+                                                <?php echo $row['status']; ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-5">
+                                            <?php if($row['status'] == 'Logged In'): ?>
+                                                <form method="POST"><input type="hidden" name="timeout_id" value="<?php echo $row['id']; ?>"><button type="submit" class="bg-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-600 transition-colors">TIMEOUT</button></form>
+                                            <?php else: ?>
+                                                <p class="text-[10px] font-bold text-slate-400">OUT: <?php echo date("h:i A", strtotime($row['time_out'])); ?></p>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="5" class="px-8 py-10 text-center text-slate-400 font-bold text-sm">No entry records found for this date.</td></tr>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8">
-                    <h2 class="text-lg font-black text-slate-800 mb-6">Security History</h2>
-                    <div class="space-y-6">
-                        <?php while($h = $history->fetch_assoc()): ?>
-                        <div class="relative pl-6 border-l-2 border-slate-100">
-                            <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-blue-500"></div>
-                            <p class="text-xs font-black text-slate-800"><?php echo $h['action']; ?></p>
-                            <p class="text-[10px] text-slate-500 mt-1"><?php echo htmlspecialchars($h['details']); ?></p>
-                            <p class="text-[9px] font-bold text-blue-500 mt-1"><?php echo date("h:i A", strtotime($h['created_at'])); ?></p>
-                        </div>
-                        <?php endwhile; ?>
+                
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 flex flex-col h-[600px]">
+                    <div class="flex justify-between items-center mb-6 shrink-0">
+                        <h2 class="text-lg font-black text-slate-800">Security Log Archive</h2>
+                    </div>
+                    <div class="space-y-6 overflow-y-auto flex-1 pr-2">
+                        <?php if($archive_logs->num_rows > 0): ?>
+                            <?php while($arch = $archive_logs->fetch_assoc()): ?>
+                            <div class="relative pl-6 border-l-2 border-slate-100">
+                                <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-blue-500"></div>
+                                <p class="text-xs font-black text-slate-800"><?php echo htmlspecialchars($arch['fullname']); ?></p>
+                                <div class="text-[10px] text-slate-500 mt-2 space-y-1">
+                                    <p><span class="font-bold text-slate-600">Time In:</span> <?php echo date("h:i A", strtotime($arch['time_in'])); ?></p>
+                                    <p><span class="font-bold text-slate-600">Time Out:</span> <?php echo $arch['time_out'] ? date("h:i A", strtotime($arch['time_out'])) : '<span class="text-emerald-500 font-bold">Still Inside</span>'; ?></p>
+                                    <p class="leading-relaxed">
+                                        <span class="font-bold text-slate-600">Items:</span> 
+                                        <?php 
+                                            $items_arr = json_decode($arch['items_json'], true);
+                                            $item_strings = [];
+                                            if(!empty($items_arr)) {
+                                                foreach($items_arr as $key => $val) {
+                                                    $name = isset($val['name']) ? $val['name'] : $key;
+                                                    $item_strings[] = $name . ' (x' . $val['qty'] . ')';
+                                                }
+                                                echo htmlspecialchars(implode(', ', $item_strings));
+                                            } else {
+                                                echo "No items declared";
+                                            }
+                                        ?>
+                                    </p>
+                                </div>
+                            </div>
+                            <?php endwhile; ?>
+                        <?php else: ?>
+                            <p class="text-center text-slate-400 font-bold text-sm mt-10">No logs found for this date.</p>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    
     <div id="itemModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl">
             <div class="p-6 border-b border-slate-50 flex justify-between items-center">
                 <h3 class="text-xl font-black text-slate-800">Declared Items</h3>
-                <button onclick="closeModal()" class="text-slate-400"><i class="fas fa-times-circle"></i></button>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times-circle text-xl"></i></button>
             </div>
-            <div id="itemList" class="p-6 space-y-3"></div>
+            <div id="itemList" class="p-6 space-y-3 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
+    
     <script>
-        function viewItems(items) {
+        function viewItems(btn) {
+            const items = JSON.parse(btn.getAttribute('data-items'));
             const list = document.getElementById('itemList');
             list.innerHTML = '';
-            for (const [key, details] of Object.entries(items)) {
-                list.innerHTML += `<div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center"><div><p class="text-xs font-black text-slate-700 uppercase">${key}</p><p class="text-[10px] text-slate-400">${details.brand || 'N/A'} | ${details.color || 'N/A'}</p></div><div class="text-xs font-black text-blue-600">x${details.qty}</div></div>`;
+            
+            if(Object.keys(items).length === 0) {
+                list.innerHTML = '<p class="text-center text-slate-400 font-bold text-sm py-4">No items declared.</p>';
+            } else {
+                for (const [key, details] of Object.entries(items)) {
+                    let amountHtml = details.amount ? ` | ₱${details.amount}` : '';
+                    list.innerHTML += `<div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center"><div><p class="text-xs font-black text-slate-700 uppercase">${details.name || key}</p><p class="text-[10px] text-slate-400">${details.brand || 'N/A'} | ${details.color || 'N/A'}${amountHtml}</p></div><div class="text-xs font-black text-blue-600 bg-blue-100 px-3 py-1 rounded-lg">x${details.qty}</div></div>`;
+                }
             }
             document.getElementById('itemModal').classList.remove('hidden');
         }
         function closeModal() { document.getElementById('itemModal').classList.add('hidden'); }
+        
         <?php if(isset($timeoutSuccess)): ?>
         Swal.fire({ icon: 'success', title: 'Personnel Timed Out', showConfirmButton: false, timer: 1500 });
         <?php endif; ?>

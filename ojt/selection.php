@@ -1,26 +1,17 @@
 <?php
 session_start();
-// Set timezone to Philippine Time
 date_default_timezone_set('Asia/Manila'); 
 require '../config.php';
 
-// 1. Security Check - Removed for public access
-// if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'OJT') {
-//     header("Location: ../login.php");
-//     exit();
-// }
-
-$user_id = $_SESSION['user_id'] ?? null;
 $successTrigger = false;
 
-// 2. Handle Item Declaration & Time In
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration'])) {
+    $user_id = $_SESSION['user_id'] ?? 'UNKNOWN-OJT';
     $shift_id = $_POST['shift_id'];
     $fullname = trim($_POST['fullname'] ?? '');
-    $declaration_date = date('Y-m-d'); // Current PH Date
-    $time_now = date('H:i:s');        // Current PH Time
+    $declaration_date = date('Y-m-d'); 
+    $time_now = date('H:i:s');        
     
-    // Process items into an array to store as JSON
     $declared_items = [];
     if (isset($_POST['items'])) {
         foreach ($_POST['items'] as $item_key) {
@@ -39,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
 
     $items_json = json_encode($declared_items);
 
-    // Insert into database
     $stmt = $conn->prepare("INSERT INTO item_declarations (user_id, fullname, shift_id, declaration_date, time_in, items_json) VALUES (?, ?, ?, ?, ?, ?)");
     $stmt->bind_param("ssisss", $user_id, $fullname, $shift_id, $declaration_date, $time_now, $items_json);
     
@@ -48,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,9 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 text-slate-800">
-
     <div class="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden">
-        
         <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-blue-600 text-white">
             <div>
                 <h3 class="text-2xl font-black">OJT Entry Declaration</h3>
@@ -76,15 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
                 <i class="fas fa-arrow-left"></i> Back
             </a>
         </div>
-
         <form action="" method="POST" class="flex flex-col">
             <div class="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-                
                 <div class="space-y-2">
                     <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Full Name</label>
                     <input type="text" name="fullname" required placeholder="Enter your full name" class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-
                 <div class="space-y-2">
                     <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Select Assigned Shift</label>
                     <select name="shift_id" required class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
@@ -97,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
                         ?>
                     </select>
                 </div>
-
                 <div class="space-y-3">
                     <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Item Declaration (Matching Gate Pass)</label>
                     <?php
@@ -123,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
                             </div>
                         </div>
                     <?php endforeach; ?>
-                    
                     <div class="border border-slate-100 rounded-2xl p-4 bg-slate-50">
                         <label class="flex items-center cursor-pointer">
                             <input type="checkbox" name="items[]" value="others" id="chk_others" onchange="toggleItemFields('others')" class="w-5 h-5 rounded border-slate-300">
@@ -140,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
                     </div>
                 </div>
             </div>
-
             <div class="p-8 border-t border-slate-100 bg-white flex justify-end gap-3">
                 <button type="submit" name="submit_declaration" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors">
                     Submit Entry & Declaration
@@ -148,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
             </div>
         </form>
     </div>
-
     <script>
         function toggleItemFields(key) {
             document.getElementById('fields_' + key).classList.toggle('hidden', !document.getElementById('chk_' + key).checked);

@@ -55,6 +55,10 @@ function getIconStyle($pageName, $currentPage) {
         <a href="visitors.php" class="<?php echo getLinkStyle('visitors.php', $currentPage); ?>">
             <i class="fas fa-id-badge w-5 text-center <?php echo getIconStyle('visitors.php', $currentPage); ?>"></i> Visitors
         </a>
+
+        <a href="tip-history.php" class="<?php echo getLinkStyle('tip-history.php', $currentPage); ?>">
+            <i class="fas fa-coins w-5 text-center <?php echo getIconStyle('tip-history.php', $currentPage); ?>"></i> Tip History
+        </a>
     </nav>
 
     <div class="p-6 border-t border-slate-100 mt-auto">
