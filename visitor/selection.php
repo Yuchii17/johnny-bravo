@@ -2,6 +2,7 @@
 session_start();
 date_default_timezone_set('Asia/Manila'); 
 require '../config.php';
+require '../audit_logger.php';
 
 $successTrigger = false;
 
@@ -35,6 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
     
     if ($stmt->execute()) {
         $successTrigger = true;
+        // Log the Visitor entry action
+        log_audit($conn, $user_id, $fullname, 'Visitor', 'ITEM_DECLARATION', 'Visitor submitted item declaration');
     }
 }
 ?>

@@ -1,5 +1,6 @@
 <?php
 require 'config.php';
+require 'audit_logger.php';
 
 $registerSuccess = false;
 $errorMessage = "";
@@ -41,6 +42,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($insertQuery->execute()) {
             $registerSuccess = true;
+            // Log the registration action
+            log_audit($conn, $generatedId, $fullName, $role, 'REGISTER', "User registered with role: $role and department: $department");
         } else {
             $errorMessage = $conn->error;
         }

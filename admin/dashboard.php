@@ -78,6 +78,9 @@ if ($res_vis) {
         $vis_counts[] = (int)$row['count'];
     }
 }
+
+// 6. RECENT AUDIT LOGS
+$recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 5");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -186,7 +189,61 @@ if ($res_vis) {
                 <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-center">
                     <div id="visitorMonthChart3D" class="h-80 w-full"></div>
                 </div>
-                
+            </div>
+
+            <!-- RECENT AUDIT LOGS CARD -->
+            <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800 tracking-tight">Recent System Activity</h3>
+                        <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Real-time audit monitoring</p>
+                    </div>
+                    <a href="audit-logs.php" class="px-5 py-2.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest transition-colors border border-slate-100">
+                        View All Logs
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                                <th class="px-4 py-3">Time</th>
+                                <th class="px-4 py-3">User</th>
+                                <th class="px-4 py-3">Action</th>
+                                <th class="px-4 py-3">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <?php if($recent_logs && $recent_logs->num_rows > 0): ?>
+                                <?php while($log = $recent_logs->fetch_assoc()): ?>
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-4 py-4">
+                                        <span class="text-xs font-bold text-slate-500"><?php echo date("h:i A", strtotime($log['created_at'])); ?></span>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-slate-800"><?php echo htmlspecialchars($log['fullname']); ?></span>
+                                            <span class="text-[10px] font-bold text-blue-500 uppercase"><?php echo htmlspecialchars($log['role'] ?? 'Public'); ?></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                            <?php echo htmlspecialchars($log['action']); ?>
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <p class="text-xs text-slate-500 font-medium truncate max-w-xs"><?php echo htmlspecialchars($log['details']); ?></p>
+                                    </td>
+                                </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-slate-400 text-xs font-bold italic">No recent activity logs.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>

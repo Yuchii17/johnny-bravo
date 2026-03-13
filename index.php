@@ -53,12 +53,18 @@ if (isset($_SESSION['user_id'])) {
                 Discover a haven of tranquility and world-class service. Whether you are a valued guest, a dedicated employee, or part of our management team, excellence awaits you.
             </p>
             
-            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-10">
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mb-6">
                 <a href="ojt/selection.php" class="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold text-lg hover:bg-blue-700 transition shadow-lg flex items-center justify-center gap-3">
                     <i class="fas fa-user-graduate"></i> OJT Entry
                 </a>
                 <a href="visitor/selection.php" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold text-lg hover:bg-emerald-700 transition shadow-lg flex items-center justify-center gap-3">
                     <i class="fas fa-user-friends"></i> Visitor Entry
+                </a>
+            </div>
+            
+            <div class="flex justify-center mb-10">
+                <a href="timeout.php" class="px-8 py-4 bg-rose-50 text-rose-600 border-2 border-rose-100 rounded-2xl font-bold text-lg hover:bg-rose-100 transition shadow-sm flex items-center justify-center gap-3">
+                    <i class="fas fa-sign-out-alt"></i> Time Out
                 </a>
             </div>
 

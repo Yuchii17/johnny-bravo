@@ -2,6 +2,7 @@
 session_start();
 date_default_timezone_set('Asia/Manila');
 require '../config.php';
+require '../audit_logger.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Security') {
     header("Location: ../index.php");
@@ -227,6 +228,90 @@ $archive_logs = $stmt_archive->get_result();
                         <?php else: ?>
                             <p class="text-center text-slate-400 font-bold text-sm mt-10">No logs found for this date.</p>
                         <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AUDIT LOGS SECTION -->
+            <div class="max-w-6xl mx-auto mt-12">
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800 tracking-tight">Your Activity Logs</h3>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Personal Audit Trail</p>
+                        </div>
+                        <form method="GET" class="flex items-center gap-2">
+                            <input type="hidden" name="filter_date" value="<?php echo $filter_date; ?>">
+                            <select name="log_status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="0" <?php echo (!isset($_GET['log_status']) || $_GET['log_status'] == '0') ? 'selected' : ''; ?>>Active Logs (Last 24h)</option>
+                                <option value="1" <?php echo (isset($_GET['log_status']) && $_GET['log_status'] == '1') ? 'selected' : ''; ?>>Archived Logs</option>
+                            </select>
+                        </form>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                    <th class="px-8 py-4">Time</th>
+                                    <th class="px-8 py-4">Action</th>
+                                    <th class="px-8 py-4">Details</th>
+                                    <th class="px-8 py-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                <?php
+                                $log_status = isset($_GET['log_status']) ? (int)$_GET['log_status'] : 0;
+                                $user_id = $_SESSION['user_id'];
+                                $logs_stmt = $conn->prepare("SELECT * FROM audit_logs WHERE user_id = ? AND is_archived = ? ORDER BY created_at DESC LIMIT 10");
+                                $logs_stmt->bind_param("si", $user_id, $log_status);
+                                $logs_stmt->execute();
+                                $logs_res = $logs_stmt->get_result();
+
+                                if ($logs_res->num_rows > 0):
+                                    while ($log = $logs_res->fetch_assoc()):
+                                ?>
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-8 py-4">
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-bold text-slate-700"><?php echo date("M d, Y", strtotime($log['created_at'])); ?></span>
+                                                <span class="text-[10px] font-bold text-slate-400"><?php echo date("h:i A", strtotime($log['created_at'])); ?></span>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-4">
+                                            <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-blue-100">
+                                                <?php echo htmlspecialchars($log['action']); ?>
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-4">
+                                            <p class="text-xs text-slate-500 font-medium truncate max-w-xs" title="<?php echo htmlspecialchars($log['details']); ?>">
+                                                <?php echo htmlspecialchars($log['details']); ?>
+                                            </p>
+                                        </td>
+                                        <td class="px-8 py-4">
+                                            <?php if ($log['is_archived']): ?>
+                                                <span class="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase">
+                                                    <i class="fas fa-archive"></i> Archived
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="flex items-center gap-1.5 text-emerald-500 font-bold text-[10px] uppercase">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Recent
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php 
+                                    endwhile;
+                                else:
+                                ?>
+                                    <tr>
+                                        <td colspan="4" class="px-8 py-12 text-center text-slate-400 text-xs font-bold italic">
+                                            No <?php echo $log_status ? 'archived' : 'recent'; ?> activity logs found.
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

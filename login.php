@@ -1,6 +1,7 @@
 <?php
 session_start();
 require 'config.php';
+require 'audit_logger.php';
 
 $loginSuccess = false;
 $errorMessage = "";
@@ -22,6 +23,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['fullname'] = $user['fullname'];
             $_SESSION['role'] = $user['role'];
             $loginSuccess = true;
+            
+            // Log the login action
+            log_audit($conn, $user['user_id'], $user['fullname'], $user['role'], 'LOGIN', 'User logged into the system');
             
             if ($user['role'] === 'Super Admin' || $user['role'] === 'Manager') {
                 $redirectUrl = 'admin/dashboard.php';
