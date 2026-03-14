@@ -1,7 +1,3 @@
--- SQL Script for Audit Logs and Schema Sync
--- Based on the user's provided database structure
-
--- 1. Create audit_logs table to track user activities
 CREATE TABLE IF NOT EXISTS audit_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(50) DEFAULT NULL,
@@ -10,14 +6,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     action VARCHAR(255) NOT NULL,
     details TEXT DEFAULT NULL,
     ip_address VARCHAR(45) DEFAULT NULL,
-    is_archived TINYINT(1) DEFAULT 0, -- 0: Active, 1: Archived after 24 hours
+    is_archived TINYINT(1) DEFAULT 0, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX (user_id),
     INDEX (created_at),
     INDEX (is_archived)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. Sync existing tables (just in case they don't exactly match the provided structure)
 CREATE TABLE IF NOT EXISTS users ( 
     id INT AUTO_INCREMENT PRIMARY KEY, 
     user_id VARCHAR(20) NOT NULL UNIQUE, 
@@ -38,11 +33,12 @@ CREATE TABLE IF NOT EXISTS schedules (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
--- 3. Item Declarations table
 CREATE TABLE IF NOT EXISTS item_declarations ( 
     id INT AUTO_INCREMENT PRIMARY KEY, 
     user_id VARCHAR(50) NOT NULL, 
     fullname VARCHAR(100) NOT NULL, 
+    department VARCHAR(100) DEFAULT NULL, -- Added department
+    purpose VARCHAR(255) DEFAULT NULL, -- Purpose of visit (Visitors only)
     shift_id INT NOT NULL, 
     declaration_date DATE NOT NULL, 
     timeout_date DATE DEFAULT NULL, 
@@ -55,7 +51,6 @@ CREATE TABLE IF NOT EXISTS item_declarations (
     INDEX (declaration_date) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
--- 4. Security Logs
 CREATE TABLE IF NOT EXISTS security_logs ( 
     id INT AUTO_INCREMENT PRIMARY KEY, 
     action VARCHAR(255) NOT NULL, 
@@ -64,7 +59,6 @@ CREATE TABLE IF NOT EXISTS security_logs (
     INDEX (created_at) 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4; 
 
--- 5. Tip Ledger
 CREATE TABLE IF NOT EXISTS tip_ledger ( 
     id INT AUTO_INCREMENT PRIMARY KEY, 
     recipient_name VARCHAR(100) NOT NULL, 

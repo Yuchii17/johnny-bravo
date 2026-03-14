@@ -78,14 +78,26 @@ $result = $conn->query($query);
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            /* Added Mesh Gradient Background for Glassmorphism */
+            background-color: #e0f2fe;
+            background-image: 
+                radial-gradient(at 40% 20%, hsla(214,100%,85%,1) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(189,100%,86%,1) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(280,100%,90%,1) 0px, transparent 50%),
+                radial-gradient(at 80% 100%, hsla(230,100%,88%,1) 0px, transparent 50%),
+                radial-gradient(at 0% 0%, hsla(340,100%,92%,1) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
         
         .table-container::-webkit-scrollbar { height: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-container::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.7); }
         
-        .modal-overlay { background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .modal-overlay { background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(6px); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
@@ -94,17 +106,17 @@ $result = $conn->query($query);
 
     <div class="flex-1 flex flex-col overflow-hidden">
         
-        <header class="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-10 z-10">
+        <header class="h-20 bg-white/40 backdrop-blur-md border-b border-white/40 flex items-center justify-between px-6 lg:px-10 z-10 shadow-sm">
             <div class="flex items-center gap-4">
                 <h2 class="text-2xl font-bold text-slate-800">User Access Management</h2>
             </div>
             
             <div class="flex items-center gap-6">
                 <div class="hidden sm:block text-right">
-                    <p class="text-sm font-bold text-slate-800"><?php echo htmlspecialchars($_SESSION['fullname']); ?></p>
-                    <p class="text-xs font-medium text-slate-500"><?php echo htmlspecialchars($_SESSION['role']); ?></p>
+                    <p class="text-sm font-bold text-slate-800"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'User'); ?></p>
+                    <p class="text-xs font-medium text-slate-600"><?php echo htmlspecialchars($_SESSION['role'] ?? 'Role'); ?></p>
                 </div>
-                <a href="../logout.php" class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-semibold transition-colors text-sm">
+                <a href="../logout.php" class="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20 rounded-lg font-semibold transition-colors text-sm backdrop-blur-sm">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
@@ -114,20 +126,20 @@ $result = $conn->query($query);
             
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <div class="relative w-full sm:w-96">
-                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Search users to manage access..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow shadow-sm">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" id="searchInput" placeholder="Search users to manage access..." class="w-full bg-white/50 backdrop-blur-md border border-white/50 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/70 transition-all shadow-sm placeholder-slate-500 text-slate-800">
                 </div>
                 
-                <button type="button" id="openAddModalBtn" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors shadow-sm shadow-blue-600/20 text-sm">
+                <button type="button" id="openAddModalBtn" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600/90 backdrop-blur-md hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-600/20 text-sm border border-blue-400/30">
                     <i class="fas fa-user-plus"></i> Add New User
                 </button>
             </div>
 
-            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-white/40 backdrop-blur-xl border border-white/50 rounded-2xl shadow-xl overflow-hidden">
                 <div class="overflow-x-auto table-container">
                     <table class="w-full whitespace-nowrap">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr class="bg-white/30 border-b border-white/40 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
                                 <th class="px-6 py-4">User Details</th>
                                 <th class="px-6 py-4">System ID</th>
                                 <th class="px-6 py-4">Department</th>
@@ -135,25 +147,25 @@ $result = $conn->query($query);
                                 <th class="px-6 py-4 text-center">Manage</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100" id="accessTableBody">
+                        <tbody class="divide-y divide-white/30" id="accessTableBody">
                             
                             <?php if ($result && $result->num_rows > 0): ?>
                                 <?php while($row = $result->fetch_assoc()): ?>
-                                    <tr class="hover:bg-slate-50 transition-colors group user-row">
+                                    <tr class="hover:bg-white/50 transition-colors group user-row">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm border border-slate-200">
+                                                <div class="w-10 h-10 rounded-full bg-white/60 backdrop-blur-sm text-slate-700 flex items-center justify-center font-bold text-sm border border-white/50 shadow-sm">
                                                     <?php echo strtoupper(substr($row['fullname'], 0, 1)); ?>
                                                 </div>
                                                 <div>
                                                     <div class="font-bold text-slate-800 text-sm user-name"><?php echo htmlspecialchars($row['fullname']); ?></div>
-                                                    <div class="text-xs text-slate-500 font-medium user-email"><?php echo htmlspecialchars($row['email']); ?></div>
+                                                    <div class="text-xs text-slate-600 font-medium user-email"><?php echo htmlspecialchars($row['email']); ?></div>
                                                 </div>
                                             </div>
                                         </td>
                                         
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 font-mono user-id">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-white/50 backdrop-blur-sm border border-white/40 text-slate-700 font-mono user-id shadow-sm">
                                                 <?php echo htmlspecialchars($row['user_id']); ?>
                                             </span>
                                         </td>
@@ -167,17 +179,17 @@ $result = $conn->query($query);
                                         <td class="px-6 py-4">
                                             <?php 
                                                 $role = htmlspecialchars($row['role']);
-                                                $badgeClass = "bg-slate-100 text-slate-700 border border-slate-200";
+                                                $badgeClass = "bg-white/50 text-slate-700 border border-white/60";
                                                 
-                                                if ($role === 'Manager') $badgeClass = "bg-blue-100 text-blue-700 border border-blue-200";
-                                                elseif ($role === 'Security') $badgeClass = "bg-amber-100 text-amber-700 border border-amber-200";
-                                                elseif ($role === 'Supervisor') $badgeClass = "bg-purple-100 text-purple-700 border border-purple-200";
-                                                elseif ($role === 'Employee') $badgeClass = "bg-cyan-100 text-cyan-700 border border-cyan-200";
-                                                elseif ($role === 'OJT') $badgeClass = "bg-pink-100 text-pink-700 border border-pink-200";
-                                                elseif ($role === 'Visitor') $badgeClass = "bg-gray-100 text-gray-700 border border-gray-200";
-                                                elseif ($role === 'Front Desk') $badgeClass = "bg-emerald-100 text-emerald-700 border border-emerald-200";
+                                                if ($role === 'Manager') $badgeClass = "bg-blue-100/70 text-blue-800 border border-blue-200/50";
+                                                elseif ($role === 'Security') $badgeClass = "bg-amber-100/70 text-amber-800 border border-amber-200/50";
+                                                elseif ($role === 'Supervisor') $badgeClass = "bg-purple-100/70 text-purple-800 border border-purple-200/50";
+                                                elseif ($role === 'Employee') $badgeClass = "bg-cyan-100/70 text-cyan-800 border border-cyan-200/50";
+                                                elseif ($role === 'OJT') $badgeClass = "bg-pink-100/70 text-pink-800 border border-pink-200/50";
+                                                elseif ($role === 'Visitor') $badgeClass = "bg-gray-100/70 text-gray-800 border border-gray-200/50";
+                                                elseif ($role === 'Front Desk') $badgeClass = "bg-emerald-100/70 text-emerald-800 border border-emerald-200/50";
                                             ?>
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold <?php echo $badgeClass; ?>">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm <?php echo $badgeClass; ?>">
                                                 <i class="fas fa-shield-alt mr-1.5 text-[10px] opacity-70"></i> <?php echo $role; ?>
                                             </span>
                                         </td>
@@ -185,7 +197,7 @@ $result = $conn->query($query);
                                         <td class="px-6 py-4 text-center">
                                             <div class="flex items-center justify-center">
                                                 <button type="button" 
-                                                        class="edit-btn w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 flex items-center justify-center transition-all shadow-sm group-hover:shadow" 
+                                                        class="edit-btn w-9 h-9 rounded-xl bg-white/50 backdrop-blur-sm border border-white/60 text-slate-600 hover:bg-blue-500/20 hover:text-blue-700 hover:border-blue-300/50 flex items-center justify-center transition-all shadow-sm" 
                                                         title="Edit User"
                                                         data-id="<?php echo htmlspecialchars($row['user_id']); ?>"
                                                         data-name="<?php echo htmlspecialchars($row['fullname']); ?>"
@@ -200,24 +212,24 @@ $result = $conn->query($query);
                                 <?php endwhile; ?>
                                 
                                 <tr id="noResultsRow" style="display: none;">
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-600">
                                         <div class="flex flex-col items-center justify-center">
-                                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 text-2xl">
+                                            <div class="w-16 h-16 bg-white/40 backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-slate-500 mb-4 text-2xl shadow-inner">
                                                 <i class="fas fa-search-minus"></i>
                                             </div>
-                                            <p class="text-base font-bold text-slate-700">No matching users found</p>
+                                            <p class="text-base font-bold text-slate-800">No matching users found</p>
                                         </div>
                                     </td>
                                 </tr>
 
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-600">
                                         <div class="flex flex-col items-center justify-center">
-                                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 text-2xl">
+                                            <div class="w-16 h-16 bg-white/40 backdrop-blur-md border border-white/50 rounded-full flex items-center justify-center text-slate-500 mb-4 text-2xl shadow-inner">
                                                 <i class="fas fa-user-shield"></i>
                                             </div>
-                                            <p class="text-base font-bold text-slate-700">No manageable users found</p>
+                                            <p class="text-base font-bold text-slate-800">No manageable users found</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -227,8 +239,8 @@ $result = $conn->query($query);
                     </table>
                 </div>
                 
-                <div class="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-between">
-                    <p class="text-xs font-semibold text-slate-500" id="tableStatus">Showing all manageable users</p>
+                <div class="bg-white/30 backdrop-blur-md border-t border-white/40 px-6 py-4 flex items-center justify-between">
+                    <p class="text-xs font-semibold text-slate-600" id="tableStatus">Showing all manageable users</p>
                 </div>
             </div>
 
@@ -236,14 +248,14 @@ $result = $conn->query($query);
     </div>
 
     <div id="addModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300" id="addModalContent">
+        <div class="bg-white/70 backdrop-blur-2xl border border-white/50 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300" id="addModalContent">
             
-            <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div class="px-8 py-6 border-b border-white/40 flex justify-between items-center bg-white/40">
                 <div>
                     <h3 class="text-xl font-bold text-slate-800">Add New User</h3>
-                    <p class="text-xs font-semibold text-slate-500 mt-1">Create a new system account</p>
+                    <p class="text-xs font-semibold text-slate-600 mt-1">Create a new system account</p>
                 </div>
-                <button type="button" id="closeAddModalBtn" class="text-slate-400 hover:text-slate-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <button type="button" id="closeAddModalBtn" class="text-slate-500 hover:text-slate-800 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/50">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -251,24 +263,24 @@ $result = $conn->query($query);
             <form method="POST" action="" class="p-8 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
-                        <input type="text" name="fullname" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
+                        <input type="text" name="fullname" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
                     
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
-                        <input type="email" name="email" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
+                        <input type="email" name="email" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
-                        <input type="text" name="department" required placeholder="e.g. IT, HR" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Department</label>
+                        <input type="text" name="department" required placeholder="e.g. IT, HR" class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">System Role</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">System Role</label>
                         <div class="relative">
-                            <select name="role" required class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-8 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-semibold text-slate-700">
+                            <select name="role" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl pl-4 pr-8 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 appearance-none cursor-pointer font-semibold text-slate-800 shadow-sm">
                                 <option value="Employee">Employee</option>
                                 <option value="Manager">Manager</option>
                                 <option value="Supervisor">Supervisor</option>
@@ -277,21 +289,21 @@ $result = $conn->query($query);
                                 <option value="OJT">OJT</option>
                                 <option value="Visitor">Visitor</option>
                             </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
                         </div>
                     </div>
 
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Initial Password</label>
-                        <input type="password" name="password" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Initial Password</label>
+                        <input type="password" name="password" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
                 </div>
 
-                <div class="mt-8 flex gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" id="cancelAddModalBtn" class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                <div class="mt-8 flex gap-3 pt-4 border-t border-white/40">
+                    <button type="button" id="cancelAddModalBtn" class="flex-1 px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/60 text-slate-700 rounded-xl font-bold text-sm hover:bg-white/80 transition-all shadow-sm">
                         Cancel
                     </button>
-                    <button type="submit" name="add_user" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-600/20">
+                    <button type="submit" name="add_user" class="flex-1 px-4 py-3 bg-blue-600/90 backdrop-blur-md border border-blue-400/30 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
                         Create User
                     </button>
                 </div>
@@ -300,14 +312,14 @@ $result = $conn->query($query);
     </div>
 
     <div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay opacity-0 pointer-events-none transition-opacity duration-300 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300" id="editModalContent">
+        <div class="bg-white/70 backdrop-blur-2xl border border-white/50 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300" id="editModalContent">
             
-            <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div class="px-8 py-6 border-b border-white/40 flex justify-between items-center bg-white/40">
                 <div>
                     <h3 class="text-xl font-bold text-slate-800">Edit User Profile</h3>
-                    <p class="text-xs font-semibold text-slate-500 mt-1" id="editModalSubtitle">System ID: 000000</p>
+                    <p class="text-xs font-semibold text-slate-600 mt-1" id="editModalSubtitle">System ID: 000000</p>
                 </div>
-                <button type="button" id="closeEditModalBtn" class="text-slate-400 hover:text-slate-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100">
+                <button type="button" id="closeEditModalBtn" class="text-slate-500 hover:text-slate-800 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/50">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -317,24 +329,24 @@ $result = $conn->query($query);
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
-                        <input type="text" name="edit_fullname" id="editModalName" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Full Name</label>
+                        <input type="text" name="edit_fullname" id="editModalName" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
                     
                     <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
-                        <input type="email" name="edit_email" id="editModalEmail" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Email Address</label>
+                        <input type="email" name="edit_email" id="editModalEmail" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
-                        <input type="text" name="edit_department" id="editModalDept" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Department</label>
+                        <input type="text" name="edit_department" id="editModalDept" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 transition-all text-slate-800 shadow-sm">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">System Role</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">System Role</label>
                         <div class="relative">
-                            <select name="edit_role" id="editModalRole" required class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-8 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-semibold text-slate-700">
+                            <select name="edit_role" id="editModalRole" required class="w-full bg-white/50 backdrop-blur-sm border border-white/50 rounded-xl pl-4 pr-8 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/80 appearance-none cursor-pointer font-semibold text-slate-800 shadow-sm">
                                 <option value="Employee">Employee</option>
                                 <option value="Manager">Manager</option>
                                 <option value="Supervisor">Supervisor</option>
@@ -343,16 +355,16 @@ $result = $conn->query($query);
                                 <option value="OJT">OJT</option>
                                 <option value="Visitor">Visitor</option>
                             </select>
-                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                            <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-8 flex gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" id="cancelEditModalBtn" class="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors">
+                <div class="mt-8 flex gap-3 pt-4 border-t border-white/40">
+                    <button type="button" id="cancelEditModalBtn" class="flex-1 px-4 py-3 bg-white/50 backdrop-blur-sm border border-white/60 text-slate-700 rounded-xl font-bold text-sm hover:bg-white/80 transition-all shadow-sm">
                         Cancel
                     </button>
-                    <button type="submit" name="edit_user" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-sm shadow-blue-600/20">
+                    <button type="submit" name="edit_user" class="flex-1 px-4 py-3 bg-blue-600/90 backdrop-blur-md border border-blue-400/30 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20">
                         Save Changes
                     </button>
                 </div>

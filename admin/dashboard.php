@@ -96,18 +96,49 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #e8f0fe; /* Soft blue base */
+        }
+        
+        /* Highcharts Transparent overrides */
         .highcharts-background { fill: transparent; }
         .highcharts-title { font-family: 'Plus Jakarta Sans', sans-serif !important; font-weight: 800 !important; color: #1e293b !important; }
+        
+        /* Glassmorphism Blob Animations */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 15s infinite alternate; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        /* Custom Scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden relative">
 
-    <?php include 'sidebar.php'; ?>
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute -top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-blue-400/30 mix-blend-multiply filter blur-[120px] animate-blob"></div>
+        <div class="absolute top-[20%] -right-[10%] w-[40vw] h-[40vw] rounded-full bg-sky-300/30 mix-blend-multiply filter blur-[100px] animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-[10%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-indigo-300/20 mix-blend-multiply filter blur-[120px] animate-blob animation-delay-4000"></div>
+    </div>
 
-    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+    <div class="z-20 flex h-full">
+        <?php include 'sidebar.php'; ?>
+    </div>
+
+    <div class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         
-        <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-20 shrink-0">
+        <header class="h-20 bg-white/40 backdrop-blur-xl border-b border-white/60 shadow-sm shadow-blue-900/5 flex items-center justify-between px-8 z-20 shrink-0">
             <div class="flex items-center gap-4">
                 <h2 class="text-xl font-black text-slate-800 tracking-tight">System Overview</h2>
             </div>
@@ -117,88 +148,87 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
                     <p class="text-sm font-bold text-slate-900"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Admin User'); ?></p>
                     <p class="text-[10px] text-blue-600 font-bold uppercase tracking-widest"><?php echo htmlspecialchars($_SESSION['role'] ?? 'Administrator'); ?></p>
                 </div>
-                <div class="h-8 w-px bg-slate-200"></div>
-                <a href="../logout.php" class="w-10 h-10 flex items-center justify-center bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors shadow-sm" title="Logout">
+                <div class="h-8 w-px bg-white/60 border-l border-slate-200/50"></div>
+                <a href="../logout.php" class="w-10 h-10 flex items-center justify-center bg-white/50 backdrop-blur-md text-blue-600 border border-white/80 hover:bg-white/80 rounded-xl transition-all shadow-sm" title="Logout">
                     <i class="fas fa-power-off"></i>
                 </a>
             </div>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-8 space-y-8">
+        <main class="flex-1 overflow-y-auto p-8 space-y-8 z-10">
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden group">
-                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
-                    <div class="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl shadow-lg shadow-blue-500/30 z-10 shrink-0">
+                
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center gap-6 relative overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/10">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-100/50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xl shadow-lg shadow-blue-500/30 z-10 shrink-0">
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="z-10">
-                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Registered Users</p>
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Registered Users</p>
                         <h3 class="text-3xl font-black text-slate-800 mt-1"><?php echo number_format($total_users); ?></h3>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden group">
-                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-lg shadow-emerald-500/30 z-10 shrink-0">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center gap-6 relative overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/10">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-sky-100/50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-500 text-white flex items-center justify-center text-xl shadow-lg shadow-sky-500/30 z-10 shrink-0">
                         <i class="fas fa-door-open"></i>
                     </div>
                     <div class="z-10">
-                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Currently Inside</p>
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Currently Inside</p>
                         <h3 class="text-3xl font-black text-slate-800 mt-1"><?php echo number_format($active_personnel); ?></h3>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden group">
-                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-amber-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
-                    <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-lg shadow-amber-500/30 z-10 shrink-0">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center gap-6 relative overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/10">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-100/50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-500 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30 z-10 shrink-0">
                         <i class="fas fa-coins"></i>
                     </div>
                     <div class="z-10">
-                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Total Tips Processed</p>
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Total Tips Processed</p>
                         <h3 class="text-3xl font-black text-slate-800 mt-1"><span class="text-lg text-slate-400">₱</span><?php echo number_format($total_tips, 2); ?></h3>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center gap-6 relative overflow-hidden group">
-                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
-                    <div class="w-14 h-14 rounded-2xl bg-indigo-500 text-white flex items-center justify-center text-xl shadow-lg shadow-indigo-500/30 z-10 shrink-0">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center gap-6 relative overflow-hidden group transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-900/10">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-cyan-100/50 rounded-full group-hover:scale-150 transition-transform duration-500 ease-in-out z-0"></div>
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-500 text-white flex items-center justify-center text-xl shadow-lg shadow-cyan-500/30 z-10 shrink-0">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="z-10">
-                        <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">Active Schedules</p>
+                        <p class="text-[11px] font-black text-slate-500 uppercase tracking-widest">Active Schedules</p>
                         <h3 class="text-3xl font-black text-slate-800 mt-1"><?php echo number_format($active_schedules); ?></h3>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center justify-center">
                     <div id="columnChart3D" class="h-80 w-full"></div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center justify-center">
                     <div id="pieChart3D" class="h-80 w-full"></div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center justify-center">
                     <div id="donutChart3D" class="h-80 w-full"></div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex items-center justify-center">
+                <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-6 shadow-lg shadow-blue-900/5 border border-white/80 flex items-center justify-center">
                     <div id="visitorMonthChart3D" class="h-80 w-full"></div>
                 </div>
             </div>
 
-            <!-- RECENT AUDIT LOGS CARD -->
-            <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 mb-8">
+            <div class="bg-white/50 backdrop-blur-xl rounded-[2rem] p-8 shadow-lg shadow-blue-900/5 border border-white/80 mb-8">
                 <div class="flex items-center justify-between mb-6">
                     <div>
                         <h3 class="text-xl font-black text-slate-800 tracking-tight">Recent System Activity</h3>
-                        <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Real-time audit monitoring</p>
+                        <p class="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">Real-time audit monitoring</p>
                     </div>
-                    <a href="audit-logs.php" class="px-5 py-2.5 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-widest transition-colors border border-slate-100">
+                    <a href="audit-logs.php" class="px-5 py-2.5 bg-white/60 text-blue-600 hover:bg-white/90 backdrop-blur-md rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-white shadow-sm">
                         View All Logs
                     </a>
                 </div>
@@ -206,17 +236,17 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-300/30">
                                 <th class="px-4 py-3">Time</th>
                                 <th class="px-4 py-3">User</th>
                                 <th class="px-4 py-3">Action</th>
                                 <th class="px-4 py-3">Details</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50">
+                        <tbody class="divide-y divide-slate-300/30">
                             <?php if($recent_logs && $recent_logs->num_rows > 0): ?>
                                 <?php while($log = $recent_logs->fetch_assoc()): ?>
-                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                <tr class="hover:bg-white/40 transition-colors">
                                     <td class="px-4 py-4">
                                         <span class="text-xs font-bold text-slate-500"><?php echo date("h:i A", strtotime($log['created_at'])); ?></span>
                                     </td>
@@ -227,12 +257,12 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
                                         </div>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                        <span class="px-2 py-1 bg-white/60 border border-white shadow-sm text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
                                             <?php echo htmlspecialchars($log['action']); ?>
                                         </span>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <p class="text-xs text-slate-500 font-medium truncate max-w-xs"><?php echo htmlspecialchars($log['details']); ?></p>
+                                        <p class="text-xs text-slate-600 font-medium truncate max-w-xs"><?php echo htmlspecialchars($log['details']); ?></p>
                                     </td>
                                 </tr>
                                 <?php endwhile; ?>
@@ -251,7 +281,6 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             
-            // Check if internet connection blocked the library from loading
             if (typeof Highcharts === 'undefined') {
                 const errorHtml = '<div class="text-center text-slate-400"><i class="fas fa-wifi text-3xl mb-3"></i><p class="font-bold text-sm">Failed to load charts.</p><p class="text-xs mt-1">Check your network connection or console.</p></div>';
                 document.getElementById('columnChart3D').innerHTML = errorHtml;
@@ -262,11 +291,12 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
             }
 
             try {
-                const chartColors = ['#2563eb', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6', '#14b8a6'];
+                // Switched to a cooler blue/cyan/indigo color palette to match the glassmorphism
+                const chartColors = ['#3b82f6', '#0ea5e9', '#6366f1', '#8b5cf6', '#06b6d4', '#2dd4bf'];
 
                 // 1. 3D Column Chart (Last 7 Days)
                 Highcharts.chart('columnChart3D', {
-                    chart: { type: 'column', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 }, style: { fontFamily: 'Plus Jakarta Sans' } },
+                    chart: { type: 'column', backgroundColor: 'transparent', options3d: { enabled: true, alpha: 15, beta: 15, depth: 50, viewDistance: 25 }, style: { fontFamily: 'Plus Jakarta Sans' } },
                     colors: ['#3b82f6'],
                     title: { text: 'Access Declarations (Last 7 Days)', align: 'left' },
                     xAxis: { categories: <?php echo json_encode($dates) ?: '[]'; ?>, labels: { skew3d: true, style: { fontSize: '12px', fontWeight: 'bold' } } },
@@ -278,7 +308,7 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
 
                 // 2. 3D Pie Chart (Dept)
                 Highcharts.chart('pieChart3D', {
-                    chart: { type: 'pie', options3d: { enabled: true, alpha: 45, beta: 0 } },
+                    chart: { type: 'pie', backgroundColor: 'transparent', options3d: { enabled: true, alpha: 45, beta: 0 } },
                     colors: chartColors,
                     title: { text: 'Personnel by Department', align: 'left' },
                     plotOptions: { pie: { allowPointSelect: true, cursor: 'pointer', depth: 35, dataLabels: { enabled: true, format: '{point.name}: {point.y}' } } },
@@ -288,8 +318,8 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
 
                 // 3. 3D Donut Chart (Tips)
                 Highcharts.chart('donutChart3D', {
-                    chart: { type: 'pie', options3d: { enabled: true, alpha: 45 } },
-                    colors: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'],
+                    chart: { type: 'pie', backgroundColor: 'transparent', options3d: { enabled: true, alpha: 45 } },
+                    colors: chartColors,
                     title: { text: 'Top 5 Tip Recipients', align: 'left' },
                     subtitle: { text: 'Highest accumulated amounts distributed', align: 'left' },
                     plotOptions: { pie: { innerSize: '40%', depth: 45, dataLabels: { enabled: true, format: '<b>{point.name}</b><br>₱{point.y:.2f}' } } },
@@ -297,16 +327,16 @@ $recent_logs = $conn->query("SELECT * FROM audit_logs ORDER BY created_at DESC L
                     credits: { enabled: false }
                 });
 
-                // 4. NEW: 3D Column Chart (Visitors by Month)
+                // 4. 3D Column Chart (Visitors by Month)
                 Highcharts.chart('visitorMonthChart3D', {
-                    chart: { type: 'column', options3d: { enabled: true, alpha: 10, beta: 20, depth: 40, viewDistance: 25 }, style: { fontFamily: 'Plus Jakarta Sans' } },
-                    colors: ['#8b5cf6'], // Purple tone for differentiation
+                    chart: { type: 'column', backgroundColor: 'transparent', options3d: { enabled: true, alpha: 10, beta: 20, depth: 40, viewDistance: 25 }, style: { fontFamily: 'Plus Jakarta Sans' } },
+                    colors: ['#6366f1'], 
                     title: { text: 'Monthly Visitor Traffic', align: 'left' },
                     subtitle: { text: 'Total entries registered as visitors', align: 'left' },
                     xAxis: { categories: <?php echo json_encode($vis_months) ?: '[]'; ?>, labels: { skew3d: true, style: { fontSize: '12px', fontWeight: 'bold' } } },
                     yAxis: { title: { text: 'Visitor Count' } },
                     plotOptions: { column: { depth: 25, borderRadius: 4, colorByPoint: true } },
-                    colors: ['#8b5cf6', '#a855f7', '#c084fc', '#d8b4fe', '#e9d5ff', '#f3e8ff'], // Gradient effect
+                    colors: ['#8b5cf6', '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#2dd4bf'], 
                     series: [{ name: 'Visitors', data: <?php echo json_encode($vis_counts) ?: '[]'; ?> }],
                     credits: { enabled: false },
                     legend: { enabled: false }

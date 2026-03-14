@@ -21,21 +21,21 @@ $result = $conn->query($query);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
         .table-container::-webkit-scrollbar { height: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .table-container::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.5); border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden bg-gradient-to-br from-indigo-50 via-slate-100 to-cyan-50">
 
     <?php include 'sidebar.php'; ?>
 
     <div class="flex-1 flex flex-col overflow-hidden">
         
-        <header class="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-10 z-10">
+        <header class="h-20 bg-white/60 backdrop-blur-xl border-b border-white/50 flex items-center justify-between px-6 lg:px-10 z-10 shadow-sm relative">
             <div class="flex items-center gap-4">
                 <h2 class="text-2xl font-bold text-slate-800">Employee Directory</h2>
             </div>
@@ -43,9 +43,9 @@ $result = $conn->query($query);
             <div class="flex items-center gap-6">
                 <div class="hidden sm:block text-right">
                     <p class="text-sm font-bold text-slate-800"><?php echo htmlspecialchars($_SESSION['fullname']); ?></p>
-                    <p class="text-xs font-medium text-slate-500"><?php echo htmlspecialchars($_SESSION['role']); ?></p>
+                    <p class="text-xs font-medium text-slate-600"><?php echo htmlspecialchars($_SESSION['role']); ?></p>
                 </div>
-                <a href="../logout.php" class="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-semibold transition-colors text-sm">
+                <a href="../logout.php" class="flex items-center gap-2 px-4 py-2 bg-red-50/80 backdrop-blur-md border border-red-100/50 text-red-600 hover:bg-red-100/80 rounded-lg font-semibold transition-colors text-sm shadow-sm">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
@@ -55,28 +55,28 @@ $result = $conn->query($query);
             
             <div class="flex flex-col sm:flex-row justify-start items-center mb-6 gap-3">
                 <div class="relative w-full sm:w-80">
-                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Search by name, email, or ID..." class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow shadow-sm">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, or ID..." class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-shadow shadow-sm placeholder-slate-500 text-slate-800">
                 </div>
                 
                 <div class="relative w-full sm:w-48">
-                    <i class="fas fa-filter absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
-                    <select id="roleFilter" class="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-8 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none shadow-sm cursor-pointer text-slate-700 font-medium">
+                    <i class="fas fa-filter absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                    <select id="roleFilter" class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl pl-10 pr-8 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none shadow-sm cursor-pointer text-slate-700 font-medium">
                         <option value="all">All Roles</option>
                         <option value="Super Admin">Super Admin</option>
                         <option value="Manager">Manager</option>
                         <option value="Security">Security</option>
                         <option value="Front Desk">Front Desk</option>
                     </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
                 </div>
             </div>
 
-            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-white/60 backdrop-blur-xl border border-white rounded-2xl shadow-xl shadow-slate-200/40 overflow-hidden">
                 <div class="overflow-x-auto table-container">
                     <table class="w-full whitespace-nowrap">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            <tr class="bg-white/40 border-b border-white/60 text-left text-xs font-bold text-slate-600 uppercase tracking-wider">
                                 <th class="px-6 py-4">Employee</th>
                                 <th class="px-6 py-4">System ID</th>
                                 <th class="px-6 py-4">Department</th>
@@ -84,25 +84,25 @@ $result = $conn->query($query);
                                 <th class="px-6 py-4">Date Joined</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100" id="employeeTableBody">
+                        <tbody class="divide-y divide-white/50" id="employeeTableBody">
                             
                             <?php if ($result && $result->num_rows > 0): ?>
                                 <?php while($row = $result->fetch_assoc()): ?>
-                                    <tr class="hover:bg-slate-50 transition-colors group employee-row" data-role="<?php echo htmlspecialchars($row['role']); ?>">
+                                    <tr class="hover:bg-white/50 transition-colors group employee-row" data-role="<?php echo htmlspecialchars($row['role']); ?>">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                                <div class="w-10 h-10 rounded-full bg-blue-100/80 backdrop-blur-sm border border-blue-200/50 text-blue-600 flex items-center justify-center font-bold text-sm">
                                                     <?php echo strtoupper(substr($row['fullname'], 0, 1)); ?>
                                                 </div>
                                                 <div>
                                                     <div class="font-bold text-slate-800 text-sm employee-name"><?php echo htmlspecialchars($row['fullname']); ?></div>
-                                                    <div class="text-xs text-slate-500 font-medium employee-email"><?php echo htmlspecialchars($row['email']); ?></div>
+                                                    <div class="text-xs text-slate-600 font-medium employee-email"><?php echo htmlspecialchars($row['email']); ?></div>
                                                 </div>
                                             </div>
                                         </td>
                                         
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-100 text-slate-600 font-mono employee-id">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-white/50 backdrop-blur-sm border border-white/60 text-slate-600 font-mono employee-id">
                                                 <?php echo htmlspecialchars($row['user_id']); ?>
                                             </span>
                                         </td>
@@ -116,31 +116,31 @@ $result = $conn->query($query);
                                         <td class="px-6 py-4">
                                             <?php 
                                                 $role = htmlspecialchars($row['role']);
-                                                $badgeClass = "bg-slate-100 text-slate-700";
+                                                $badgeClass = "bg-white/60 text-slate-700 border-slate-200/50";
                                                 
-                                                if ($role === 'Super Admin') $badgeClass = "bg-purple-100 text-purple-700 border border-purple-200";
-                                                elseif ($role === 'Manager') $badgeClass = "bg-blue-100 text-blue-700 border border-blue-200";
-                                                elseif ($role === 'Security') $badgeClass = "bg-amber-100 text-amber-700 border border-amber-200";
-                                                elseif ($role === 'Front Desk') $badgeClass = "bg-emerald-100 text-emerald-700 border border-emerald-200";
+                                                if ($role === 'Super Admin') $badgeClass = "bg-purple-100/80 text-purple-700 border-purple-200/50";
+                                                elseif ($role === 'Manager') $badgeClass = "bg-blue-100/80 text-blue-700 border-blue-200/50";
+                                                elseif ($role === 'Security') $badgeClass = "bg-amber-100/80 text-amber-700 border-amber-200/50";
+                                                elseif ($role === 'Front Desk') $badgeClass = "bg-emerald-100/80 text-emerald-700 border-emerald-200/50";
                                             ?>
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold <?php echo $badgeClass; ?>">
+                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-sm <?php echo $badgeClass; ?>">
                                                 <?php echo $role; ?>
                                             </span>
                                         </td>
 
-                                        <td class="px-6 py-4 text-sm font-medium text-slate-500">
+                                        <td class="px-6 py-4 text-sm font-medium text-slate-600">
                                             <?php echo date('M d, Y', strtotime($row['created_at'])); ?>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
                                 
                                 <tr id="noResultsRow" style="display: none;">
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-600">
                                         <div class="flex flex-col items-center justify-center">
-                                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 text-2xl">
+                                            <div class="w-16 h-16 bg-white/50 backdrop-blur-sm border border-white/60 rounded-full flex items-center justify-center text-slate-500 mb-4 text-2xl">
                                                 <i class="fas fa-search-minus"></i>
                                             </div>
-                                            <p class="text-base font-bold text-slate-700">No matching employees found</p>
+                                            <p class="text-base font-bold text-slate-800">No matching employees found</p>
                                             <p class="text-sm">Try adjusting your search or filter criteria.</p>
                                         </div>
                                     </td>
@@ -148,12 +148,12 @@ $result = $conn->query($query);
 
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-600">
                                         <div class="flex flex-col items-center justify-center">
-                                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 mb-4 text-2xl">
+                                            <div class="w-16 h-16 bg-white/50 backdrop-blur-sm border border-white/60 rounded-full flex items-center justify-center text-slate-500 mb-4 text-2xl">
                                                 <i class="fas fa-users-slash"></i>
                                             </div>
-                                            <p class="text-base font-bold text-slate-700">No employees found</p>
+                                            <p class="text-base font-bold text-slate-800">No employees found</p>
                                             <p class="text-sm">There are currently no users registered in the database.</p>
                                         </div>
                                     </td>
@@ -164,8 +164,8 @@ $result = $conn->query($query);
                     </table>
                 </div>
                 
-                <div class="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-between">
-                    <p class="text-xs font-semibold text-slate-500" id="tableStatus">Showing all registered employees</p>
+                <div class="bg-white/30 backdrop-blur-md border-t border-white/60 px-6 py-4 flex items-center justify-between">
+                    <p class="text-xs font-semibold text-slate-600" id="tableStatus">Showing all registered employees</p>
                 </div>
             </div>
 

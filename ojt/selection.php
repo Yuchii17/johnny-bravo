@@ -10,6 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
     $user_id = $_SESSION['user_id'] ?? 'UNKNOWN-OJT';
     $shift_id = $_POST['shift_id'];
     $fullname = trim($_POST['fullname'] ?? '');
+    $department = trim($_POST['department'] ?? ''); // Added department
     $declaration_date = date('Y-m-d'); 
     $time_now = date('H:i:s');        
     
@@ -31,13 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
 
     $items_json = json_encode($declared_items);
 
-    $stmt = $conn->prepare("INSERT INTO item_declarations (user_id, fullname, shift_id, declaration_date, time_in, items_json) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssisss", $user_id, $fullname, $shift_id, $declaration_date, $time_now, $items_json);
+    // Updated INSERT statement with department and removing purpose for OJT
+    $stmt = $conn->prepare("INSERT INTO item_declarations (user_id, fullname, department, shift_id, declaration_date, time_in, items_json) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssisss", $user_id, $fullname, $department, $shift_id, $declaration_date, $time_now, $items_json);
     
     if ($stmt->execute()) {
         $successTrigger = true;
         // Log the OJT entry action
-        log_audit($conn, $user_id, $fullname, 'OJT', 'ITEM_DECLARATION', 'OJT submitted item declaration and timed in');
+        log_audit($conn, $user_id, $fullname, 'OJT', 'ITEM_DECLARATION', "OJT submitted declaration. Dept: $department");
     }
 }
 ?>
@@ -46,102 +48,162 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration']))
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OJT Shift Entry & Item Declaration - John Hay Hotels</title>
+    <title>OJT Shift Entry & Item Declaration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        /* Custom Scrollbar for the inner form area */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.6); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(37, 99, 235, 0.5); }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4 text-slate-800">
-    <div class="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden">
-        <div class="p-8 border-b border-slate-50 flex justify-between items-center bg-blue-600 text-white">
+<body class="flex items-center justify-center h-screen overflow-hidden bg-slate-50 relative text-slate-800 p-4">
+    
+    <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-gradient-to-br from-blue-50 via-slate-100 to-white">
+        <div class="absolute top-0 -left-10 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob"></div>
+        <div class="absolute top-10 -right-10 w-96 h-96 bg-sky-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-50 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-10 left-1/3 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div class="relative z-10 bg-white/40 backdrop-blur-xl border border-white/60 rounded-[2.5rem] w-full max-w-2xl shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] flex flex-col max-h-[95vh] overflow-hidden">
+        
+        <div class="p-6 md:p-8 border-b border-white/50 flex justify-between items-center bg-blue-600 text-white shrink-0">
             <div>
-                <h3 class="text-2xl font-black">OJT Entry Declaration</h3>
-                <p class="text-sm font-medium text-blue-100">Current Local Time: <?php echo date('h:i A'); ?></p>
+                <h3 class="text-2xl font-black tracking-tight shadow-sm">OJT Entry Declaration</h3>
+                <p class="text-sm font-semibold text-blue-100 mt-1 drop-shadow-sm">Local Time: <?php echo date('h:i A'); ?></p>
             </div>
-            <a href="../index.php" class="text-white hover:text-blue-100 flex items-center gap-2 font-bold text-sm">
+            <a href="../index.php" class="text-white hover:text-blue-100 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl backdrop-blur-md border border-white/30 transition-all font-bold text-sm flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
         </div>
-        <form action="" method="POST" class="flex flex-col">
-            <div class="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
-                <div class="space-y-2">
-                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Full Name</label>
-                    <input type="text" name="fullname" required placeholder="Enter your full name" class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
+
+        <form action="" method="POST" class="flex flex-col flex-1 min-h-0">
+            
+            <div class="p-6 md:p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                        <input type="text" name="fullname" required placeholder="Enter your full name" class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all shadow-sm">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Department</label>
+                        <input type="text" name="department" required placeholder="e.g. F&B, Housekeeping, Kitchen" class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all shadow-sm">
+                    </div>
                 </div>
+                
                 <div class="space-y-2">
-                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Select Assigned Shift</label>
-                    <select name="shift_id" required class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Select Assigned Shift</label>
+                    <select name="shift_id" required class="w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all shadow-sm cursor-pointer appearance-none">
                         <option value="" disabled selected>Select from active schedules...</option>
                         <?php
                         $s = $conn->query("SELECT * FROM schedules WHERE status = 'Active'");
                         while($row = $s->fetch_assoc()) {
-                            echo "<option value='{$row['id']}'>{$row['shift_name']} (".date("g:i A", strtotime($row['time_from']))." - ".date("g:i A", strtotime($row['time_to'])).")</option>";
+                            echo "<option value='{$row['id']}' class='bg-white text-slate-800'>{$row['shift_name']} (".date("g:i A", strtotime($row['time_from']))." - ".date("g:i A", strtotime($row['time_to'])).")</option>";
                         }
                         ?>
                     </select>
                 </div>
-                <div class="space-y-3">
-                    <label class="text-xs font-black text-slate-400 uppercase tracking-widest">Item Declaration (Matching Gate Pass)</label>
+
+                <div class="space-y-6 mt-6">
+                    <label class="text-xs font-black text-blue-600 uppercase tracking-widest block mb-4 border-b border-white/50 pb-2">Item Declaration List</label>
+                    
                     <?php
-                    $gateItems = [
-                        'shirt' => 'Shirt/Blouse', 'pants' => 'Pants/Jeans/Skirt', 'bag' => 'Bag', 
-                        'wallet' => 'Wallet', 'belt' => 'Belt', 'jacket' => 'Jacket', 
-                        'cap' => 'Cap', 'cosmetics' => 'Cosmetics', 'jewelries' => 'Jewelries', 
-                        'shoes' => 'Shoes', 'tumbler' => 'Tumbler', 'charger' => 'Charger'
+                    $categories = [
+                        'Apparel' => [
+                            'shirt' => 'Shirt/Blouse', 'pants' => 'Pants/Jeans', 
+                            'jacket' => 'Jacket', 'cap' => 'Cap', 'shoes' => 'Shoes', 'belt' => 'Belt'
+                        ],
+                        'Equipments & Electronics' => [
+                            'laptop' => 'Laptop', 'phone' => 'Mobile Phone', 
+                            'tumbler' => 'Tumbler', 'charger' => 'Charger/Powerbank'
+                        ],
+                        'Personal Items' => [
+                            'bag' => 'Bag', 'wallet' => 'Wallet', 
+                            'cosmetics' => 'Cosmetics', 'jewelries' => 'Jewelries'
+                        ]
                     ];
-                    foreach ($gateItems as $key => $label): ?>
-                        <div class="border border-slate-100 rounded-2xl p-4 hover:bg-slate-50 transition-colors">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" name="items[]" value="<?php echo $key; ?>" id="chk_<?php echo $key; ?>" onchange="toggleItemFields('<?php echo $key; ?>')" class="w-5 h-5 rounded border-slate-300">
-                                <span class="ml-4 font-bold text-slate-700"><?php echo $label; ?></span>
-                            </label>
-                            <div id="fields_<?php echo $key; ?>" class="hidden mt-4 pl-9 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <?php if($key == 'wallet'): ?>
-                                    <input type="number" name="wallet_amt" placeholder="Amount (₱)" class="col-span-full bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                <?php endif; ?>
-                                <input type="number" name="<?php echo $key; ?>_qty" placeholder="QTY" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                <input type="text" name="<?php echo $key; ?>_brand" placeholder="Brand" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                <input type="text" name="<?php echo $key; ?>_color" placeholder="Color" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
+
+                    foreach ($categories as $catName => $items): ?>
+                        <div class="space-y-3 bg-white/30 backdrop-blur-sm p-5 rounded-2xl border border-white/50 shadow-sm">
+                            <h4 class="text-[10px] font-black text-blue-700 uppercase tracking-widest"><?php echo $catName; ?></h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <?php foreach ($items as $key => $label): ?>
+                                    <div class="bg-white/50 border border-white/60 rounded-2xl p-3 hover:bg-white/70 transition-colors shadow-sm">
+                                        <label class="flex items-center cursor-pointer px-1">
+                                            <input type="checkbox" name="items[]" value="<?php echo $key; ?>" id="chk_<?php echo $key; ?>" onchange="toggleItemFields('<?php echo $key; ?>')" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                            <span class="ml-3 font-bold text-slate-700 text-sm"><?php echo $label; ?></span>
+                                        </label>
+                                        <div id="fields_<?php echo $key; ?>" class="hidden mt-3 pt-3 border-t border-white/60 grid grid-cols-1 gap-2">
+                                            <?php if($key == 'wallet'): ?>
+                                                <input type="number" name="wallet_amt" placeholder="Amount (₱)" class="w-full bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                            <?php endif; ?>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <input type="number" name="<?php echo $key; ?>_qty" placeholder="QTY" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                                <input type="text" name="<?php echo $key; ?>_brand" placeholder="Brand" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                                <input type="text" name="<?php echo $key; ?>_color" placeholder="Color" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
-                    <div class="border border-slate-100 rounded-2xl p-4 bg-slate-50">
+                    
+                    <div class="bg-white/30 backdrop-blur-sm border border-white/50 rounded-2xl p-5 shadow-sm">
                         <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" name="items[]" value="others" id="chk_others" onchange="toggleItemFields('others')" class="w-5 h-5 rounded border-slate-300">
-                            <span class="ml-4 font-black text-slate-800">OTHERS</span>
+                            <input type="checkbox" name="items[]" value="others" id="chk_others" onchange="toggleItemFields('others')" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-3 font-black text-blue-800 text-sm">OTHER ITEMS</span>
                         </label>
-                        <div id="fields_others" class="hidden mt-4 pl-9 space-y-3">
-                            <input type="text" name="others_name" placeholder="Item Name" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                            <div class="grid grid-cols-3 gap-3">
-                                <input type="number" name="others_qty" placeholder="QTY" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                <input type="text" name="others_brand" placeholder="Brand" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                <input type="text" name="others_color" placeholder="Color" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
+                        <div id="fields_others" class="hidden mt-4 pt-4 border-t border-white/60 space-y-2">
+                            <input type="text" name="others_name" placeholder="Item Name" class="w-full bg-white/70 border border-white/80 rounded-xl p-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" name="others_qty" placeholder="QTY" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                <input type="text" name="others_brand" placeholder="Brand" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
+                                <input type="text" name="others_color" placeholder="Color" class="bg-white/70 border border-white/80 rounded-xl p-2.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-400">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="p-8 border-t border-slate-100 bg-white flex justify-end gap-3">
-                <button type="submit" name="submit_declaration" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-colors">
+
+            <div class="p-6 md:p-8 border-t border-white/50 bg-white/40 backdrop-blur-md flex justify-end gap-3 shrink-0">
+                <button type="submit" name="submit_declaration" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-0.5 transition-all">
                     Submit Entry & Declaration
                 </button>
             </div>
         </form>
     </div>
+
     <script>
         function toggleItemFields(key) {
             document.getElementById('fields_' + key).classList.toggle('hidden', !document.getElementById('chk_' + key).checked);
         }
+
         <?php if($successTrigger): ?>
         Swal.fire({ 
             icon: 'success', 
             title: 'Entry Submitted!', 
-            text: 'Your shift entry and item declaration have been recorded. PH Time: <?php echo date('h:i A'); ?>', 
-            confirmButtonColor: '#2563EB' 
+            text: 'Your shift entry and item declaration have been recorded. Local Time: <?php echo date('h:i A'); ?>', 
+            confirmButtonColor: '#2563eb',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdrop: 'rgba(0, 0, 0, 0.4)'
         }).then(() => { 
             window.location.href = '../index.php'; 
         });

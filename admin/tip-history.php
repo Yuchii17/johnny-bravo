@@ -36,29 +36,33 @@ $tips_result = $stmt_tips->get_result();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-sky-50 to-indigo-100 relative z-0">
     
+    <div class="absolute top-[-10%] left-[-5%] w-96 h-96 bg-blue-400/30 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
+    <div class="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-purple-400/30 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
+
     <?php include 'sidebar.php'; ?>
     
-    <main class="flex-1 flex flex-col h-full overflow-hidden">
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative z-10">
         
-        <header class="bg-white border-b border-slate-200 h-24 flex items-center justify-between px-10 shrink-0 shadow-sm z-10 relative">
+        <header class="bg-white/40 backdrop-blur-md border-b border-white/60 h-24 flex items-center justify-between px-10 shrink-0 shadow-sm z-10 relative">
             <div class="flex items-center gap-6">
                 <div>
                     <h1 class="text-2xl font-black text-slate-800 tracking-tight">Tip History</h1>
-                    <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Financial Ledger Overview</p>
+                    <p class="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">Financial Ledger Overview</p>
                 </div>
                 
-                <div class="h-10 w-px bg-slate-200 mx-4"></div>
+                <div class="h-10 w-px bg-white/60 mx-4"></div>
                 
                 <form method="GET" id="searchForm" class="flex items-center relative">
                     <i class="fas fa-search absolute left-4 text-slate-400 text-sm"></i>
-                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search recipient or staff..." class="bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 w-72 transition-all shadow-sm">
-                    <button type="submit" class="ml-2 bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-sm">Search</button>
-                    <a href="tip-history.php" id="clearBtn" class="ml-2 bg-rose-50 text-rose-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-rose-100 transition-colors <?php echo empty($search) ? 'hidden' : ''; ?>">Clear</a>
+                    <input type="text" name="search" id="searchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search recipient or staff..." class="bg-white/50 backdrop-blur-sm border border-white/60 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 w-72 transition-all shadow-sm placeholder-slate-400">
+                    
+                    <button type="submit" class="ml-2 bg-slate-800/90 backdrop-blur-md text-white border border-slate-700/50 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-700 transition-colors shadow-lg">Search</button>
+                    <a href="tip-history.php" id="clearBtn" class="ml-2 bg-rose-500/10 backdrop-blur-sm border border-rose-500/20 text-rose-600 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-rose-500/20 transition-colors <?php echo empty($search) ? 'hidden' : ''; ?>">Clear</a>
                 </form>
             </div>
             
@@ -71,27 +75,28 @@ $tips_result = $stmt_tips->get_result();
         </header>
 
         <div class="flex-1 p-10 overflow-y-auto">
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col h-full min-h-[600px] overflow-hidden">
-                <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-white shrink-0 z-10">
+            <div class="bg-white/40 backdrop-blur-xl rounded-[2rem] shadow-xl border border-white/60 flex flex-col h-full min-h-[600px] overflow-hidden">
+                
+                <div class="px-8 py-6 border-b border-white/50 flex justify-between items-center bg-white/30 shrink-0 z-10">
                     <h2 class="text-lg font-black text-slate-800">Master Ledger</h2>
-                    <span id="total-records" class="text-xs font-bold text-slate-500 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100">Total Records: <?php echo $total_records; ?></span>
+                    <span id="total-records" class="text-xs font-bold text-slate-600 bg-white/50 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/60 shadow-sm">Total Records: <?php echo $total_records; ?></span>
                 </div>
                 
                 <div class="overflow-auto flex-1 relative">
                     <table class="w-full text-left">
-                        <thead class="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-20 shadow-sm">
-                            <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                <th class="px-8 py-5 border-b border-slate-100">Transaction Date</th>
-                                <th class="px-8 py-5 border-b border-slate-100">Recipient</th>
-                                <th class="px-8 py-5 border-b border-slate-100">Remarks</th>
-                                <th class="px-8 py-5 border-b border-slate-100">Amount</th>
-                                <th class="px-8 py-5 border-b border-slate-100">Processed By</th>
+                        <thead class="sticky top-0 bg-white/60 backdrop-blur-md z-20 shadow-sm">
+                            <tr class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-white/50">
+                                <th class="px-8 py-5">Transaction Date</th>
+                                <th class="px-8 py-5">Recipient</th>
+                                <th class="px-8 py-5">Remarks</th>
+                                <th class="px-8 py-5">Amount</th>
+                                <th class="px-8 py-5">Processed By</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body" class="divide-y divide-slate-50 text-sm">
+                        <tbody id="table-body" class="divide-y divide-white/40 text-sm">
                             <?php if($tips_result->num_rows > 0): ?>
                                 <?php while($row = $tips_result->fetch_assoc()): ?>
-                                <tr class="hover:bg-blue-50/30 transition-colors group">
+                                <tr class="hover:bg-white/50 transition-colors group">
                                     <td class="px-8 py-5">
                                         <div class="flex flex-col">
                                             <span class="font-bold text-slate-700"><?php echo date("M d, Y", strtotime($row['created_at'])); ?></span>
@@ -102,14 +107,14 @@ $tips_result = $stmt_tips->get_result();
                                         <span class="font-bold text-slate-800"><?php echo htmlspecialchars($row['recipient_name']); ?></span>
                                     </td>
                                     <td class="px-8 py-5 max-w-xs truncate text-slate-500 font-medium">
-                                        <?php echo !empty($row['remarks']) ? htmlspecialchars($row['remarks']) : '<span class="text-slate-300 italic">No remarks</span>'; ?>
+                                        <?php echo !empty($row['remarks']) ? htmlspecialchars($row['remarks']) : '<span class="text-slate-400 italic">No remarks</span>'; ?>
                                     </td>
                                     <td class="px-8 py-5">
-                                        <span class="font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100/50">₱<?php echo number_format($row['amount'], 2); ?></span>
+                                        <span class="font-black text-emerald-700 bg-emerald-500/10 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-sm">₱<?php echo number_format($row['amount'], 2); ?></span>
                                     </td>
                                     <td class="px-8 py-5">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 font-bold">
+                                            <div class="w-6 h-6 rounded-full bg-white/60 border border-white/80 shadow-sm flex items-center justify-center text-[10px] text-slate-500 font-bold">
                                                 <i class="fas fa-shield-alt"></i>
                                             </div>
                                             <span class="text-xs font-bold text-slate-600"><?php echo htmlspecialchars($row['processed_by']); ?></span>
@@ -120,9 +125,11 @@ $tips_result = $stmt_tips->get_result();
                             <?php else: ?>
                                 <tr>
                                     <td colspan="5" class="px-8 py-16 text-center">
-                                        <div class="inline-flex flex-col items-center justify-center text-slate-400">
-                                            <i class="fas fa-folder-open text-4xl mb-4 text-slate-200"></i>
-                                            <p class="font-bold text-sm">No tip records found.</p>
+                                        <div class="inline-flex flex-col items-center justify-center text-slate-500">
+                                            <div class="w-16 h-16 bg-white/50 border border-white/60 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 text-2xl shadow-sm">
+                                                <i class="fas fa-folder-open text-slate-400"></i>
+                                            </div>
+                                            <p class="font-bold text-sm text-slate-600">No tip records found.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -133,10 +140,10 @@ $tips_result = $stmt_tips->get_result();
                 
                 <div id="pagination-wrapper">
                     <?php if($total_pages > 1): ?>
-                    <div class="px-8 py-5 border-t border-slate-50 flex justify-end items-center bg-white shrink-0 z-10">
+                    <div class="px-8 py-5 border-t border-white/50 flex justify-end items-center bg-white/30 shrink-0 z-10">
                         <div class="flex gap-2">
                             <?php if($page > 1): ?>
-                                <a href="?page=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-all font-bold shadow-sm"><i class="fas fa-chevron-left text-xs"></i></a>
+                                <a href="?page=<?php echo $page-1; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-white/60 bg-white/50 backdrop-blur-sm text-slate-600 hover:bg-white/80 transition-all font-bold shadow-sm"><i class="fas fa-chevron-left text-xs"></i></a>
                             <?php endif; ?>
                             
                             <?php 
@@ -144,11 +151,11 @@ $tips_result = $stmt_tips->get_result();
                             $end = min($total_pages, $page + 2);
                             for($i = $start; $i <= $end; $i++): 
                             ?>
-                                <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border text-sm font-black transition-all shadow-sm <?php echo $i == $page ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/30' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-blue-600'; ?>"><?php echo $i; ?></a>
+                                <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border backdrop-blur-sm text-sm font-black transition-all shadow-sm <?php echo $i == $page ? 'bg-blue-600/90 text-white border-blue-500/50 shadow-blue-500/30' : 'bg-white/50 text-slate-600 border-white/60 hover:bg-white/80'; ?>"><?php echo $i; ?></a>
                             <?php endfor; ?>
                             
                             <?php if($page < $total_pages): ?>
-                                <a href="?page=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-all font-bold shadow-sm"><i class="fas fa-chevron-right text-xs"></i></a>
+                                <a href="?page=<?php echo $page+1; ?>&search=<?php echo urlencode($search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl border border-white/60 bg-white/50 backdrop-blur-sm text-slate-600 hover:bg-white/80 transition-all font-bold shadow-sm"><i class="fas fa-chevron-right text-xs"></i></a>
                             <?php endif; ?>
                         </div>
                     </div>

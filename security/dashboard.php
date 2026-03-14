@@ -144,7 +144,7 @@ $archive_logs = $stmt_archive->get_result();
                                 <tr class="text-[11px] font-black text-slate-400 uppercase tracking-widest">
                                     <th class="px-8 py-4 border-b border-slate-100">Name/Role</th>
                                     <th class="px-8 py-4 border-b border-slate-100">Time In</th>
-                                    <th class="px-8 py-4 border-b border-slate-100 text-center">Items</th>
+                                    <th class="px-8 py-4 border-b border-slate-100 text-center">Purpose/Items</th>
                                     <th class="px-8 py-4 border-b border-slate-100">Status</th>
                                     <th class="px-8 py-4 border-b border-slate-100">Action</th>
                                 </tr>
@@ -156,7 +156,12 @@ $archive_logs = $stmt_archive->get_result();
                                         <td class="px-8 py-5">
                                             <div class="flex flex-col">
                                                 <span class="font-bold text-slate-800"><?php echo htmlspecialchars($row['fullname']); ?></span>
-                                                <span class="text-[9px] font-black uppercase text-indigo-500"><?php echo htmlspecialchars($row['role']); ?></span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[9px] font-black uppercase text-indigo-500"><?php echo htmlspecialchars($row['role']); ?></span>
+                                                    <?php if($row['department']): ?>
+                                                        <span class="text-[9px] font-bold text-slate-400">• <?php echo htmlspecialchars($row['department']); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="px-8 py-5">
@@ -164,12 +169,22 @@ $archive_logs = $stmt_archive->get_result();
                                             <p class="text-[10px] text-slate-400"><?php echo htmlspecialchars($row['shift_name']); ?></p>
                                         </td>
                                         <td class="px-8 py-5 text-center">
-                                            <button 
-                                                onclick="viewItems(this)" 
-                                                data-items="<?php echo htmlspecialchars($row['items_json'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                class="text-blue-600 bg-blue-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors">
-                                                View
-                                            </button>
+                                            <div class="flex flex-col gap-2 items-center">
+                                                <?php if($row['role'] == 'Visitor'): ?>
+                                                    <button 
+                                                        onclick="viewPurpose(this)" 
+                                                        data-purpose="<?php echo htmlspecialchars($row['purpose'] ?? 'No purpose stated', ENT_QUOTES, 'UTF-8'); ?>"
+                                                        class="text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-100 transition-colors w-24">
+                                                        Purpose
+                                                    </button>
+                                                <?php endif; ?>
+                                                <button 
+                                                    onclick="viewItems(this)" 
+                                                    data-items="<?php echo htmlspecialchars($row['items_json'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                    class="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-blue-100 transition-colors w-24">
+                                                    Items
+                                                </button>
+                                            </div>
                                         </td>
                                         <td class="px-8 py-5">
                                             <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase <?php echo ($row['status'] == 'Logged In') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'; ?>">
@@ -327,8 +342,29 @@ $archive_logs = $stmt_archive->get_result();
             <div id="itemList" class="p-6 space-y-3 max-h-[60vh] overflow-y-auto"></div>
         </div>
     </div>
+
+    <div id="purposeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl">
+            <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="text-xl font-black text-slate-800">Purpose of Visit</h3>
+                <button onclick="closePurposeModal()" class="text-slate-400 hover:text-slate-600 transition-colors"><i class="fas fa-times-circle text-xl"></i></button>
+            </div>
+            <div class="p-8">
+                <div class="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl">
+                    <p id="purposeText" class="text-sm font-bold text-emerald-800 leading-relaxed italic text-center"></p>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script>
+        function viewPurpose(btn) {
+            const purpose = btn.getAttribute('data-purpose');
+            document.getElementById('purposeText').innerText = '"' + purpose + '"';
+            document.getElementById('purposeModal').classList.remove('hidden');
+        }
+        function closePurposeModal() { document.getElementById('purposeModal').classList.add('hidden'); }
+
         function viewItems(btn) {
             const items = JSON.parse(btn.getAttribute('data-items'));
             const list = document.getElementById('itemList');

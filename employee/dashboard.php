@@ -1,80 +1,17 @@
 <?php
 session_start();
-date_default_timezone_set('Asia/Manila');
-require '../config.php'; 
+date_default_timezone_set('Asia/Manila'); 
+require '../config.php';
 require '../audit_logger.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit();
-}
+$successTrigger = false;
+$errorMsg = '';
 
-$current_logged_in_user = $_SESSION['fullname'];
-
-// --- FETCH STATS FOR CARDS ---
-$today = date('Y-m-d');
-
-// 1. Total Entries Today
-$total_stmt = $conn->query("SELECT COUNT(*) as total FROM item_declarations WHERE declaration_date = '$today'");
-$total_today = $total_stmt->fetch_assoc()['total'] ?? 0;
-
-// 2. OJT Entries Today (Joining with users table to check role)
-$ojt_stmt = $conn->query("SELECT COUNT(*) as total FROM item_declarations id JOIN users u ON id.user_id = u.user_id WHERE id.declaration_date = '$today' AND u.role = 'OJT'");
-$ojt_today = $ojt_stmt->fetch_assoc()['total'] ?? 0;
-
-// 3. Visitor Entries Today
-$vst_stmt = $conn->query("SELECT COUNT(*) as total FROM item_declarations id JOIN users u ON id.user_id = u.user_id WHERE id.declaration_date = '$today' AND u.role = 'Visitor'");
-$vst_today = $vst_stmt->fetch_assoc()['total'] ?? 0;
-
-
-// ==========================================
-// FORM PROCESSING: CREATE NEW USER (Auto-ID)
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_user'])) {
-    $new_fullname = trim($_POST['new_fullname']);
-    $new_email = trim($_POST['new_email']);
-    $new_role = trim($_POST['new_role']);
-    $new_dept = trim($_POST['new_department']);
-    $new_pass = password_hash('password123', PASSWORD_DEFAULT);
-
-    $prefix = "USR";
-    switch ($new_role) {
-        case 'Employee':   $prefix = "EMP"; break;
-        case 'Visitor':    $prefix = "VST"; break;
-        case 'OJT':        $prefix = "OJT"; break;
-    }
-
-    $countQuery = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role = ?");
-    $countQuery->bind_param("s", $new_role);
-    $countQuery->execute();
-    $row = $countQuery->get_result()->fetch_assoc();
-    
-    $nextNumber = $row['total'] + 1;
-    $generatedId = $prefix . str_pad($nextNumber, 3, "0", STR_PAD_LEFT);
-
-    $stmt = $conn->prepare("INSERT INTO users (user_id, fullname, email, password, role, department) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("ssssss", $generatedId, $new_fullname, $new_email, $new_pass, $new_role, $new_dept);
-    
-    if ($stmt->execute()) {
-        $_SESSION['success_msg'] = "User Created! ID: <br><strong style='font-size: 24px; color: #3B82F6;'>$generatedId</strong>";
-    } else {
-        $_SESSION['error_msg'] = "Failed to create user. Email might already exist.";
-    }
-    header("Location: dashboard.php");
-    exit();
-}
-
-// ==========================================
-// FORM PROCESSING: ENTRY & DECLARATION
-// ==========================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_declaration'])) {
-    $target_user_id = $_POST['target_user_id'];
-    $stmt_u = $conn->prepare("SELECT fullname FROM users WHERE user_id = ?");
-    $stmt_u->bind_param("s", $target_user_id);
-    $stmt_u->execute();
-    $u_res = $stmt_u->get_result()->fetch_assoc();
-    $target_fullname = $u_res['fullname'] ?? 'Unknown';
-
+// 2. Handle Item Declaration
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_declaration'])) {
+    $user_id = 'UNKNOWN-EMP'; // Default for non-logged-in employees
+    $fullname = trim($_POST['fullname'] ?? '');
+    $department = trim($_POST['department'] ?? ''); // Added department
     $shift_id = $_POST['shift_id'];
     $declaration_date = date('Y-m-d'); 
     $time_now = date('H:i:s');        
@@ -82,295 +19,218 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_declaration'])
     $declared_items = [];
     if (isset($_POST['items'])) {
         foreach ($_POST['items'] as $item_key) {
-            if ($item_key === 'others') continue; 
-            $declared_items[$item_key] = [
+            $item_details = [
                 'qty'    => $_POST[$item_key . '_qty'] ?? 1,
                 'brand'  => $_POST[$item_key . '_brand'] ?? '',
-                'color'  => $_POST[$item_key . '_color'] ?? '',
-                'amount' => ($item_key === 'wallet') ? ($_POST['wallet_amt'] ?? '') : ''
+                'color'  => $_POST[$item_key . '_color'] ?? ''
             ];
+
+            if ($item_key === 'wallet') {
+                $item_details['amount'] = $_POST['wallet_amt'] ?? '';
+            }
+
+            $declared_items[$item_key] = $item_details;
         }
     }
+    
+    if (isset($_POST['items']) && in_array('others', $_POST['items'])) {
+        $declared_items['others']['name'] = $_POST['others_name'] ?? 'Others';
+    }
+
     $items_json = json_encode($declared_items);
 
-    $stmt = $conn->prepare("INSERT INTO item_declarations (user_id, fullname, shift_id, declaration_date, time_in, items_json, status) VALUES (?, ?, ?, ?, ?, ?, 'Logged In')");
-    $stmt->bind_param("ssisss", $target_user_id, $target_fullname, $shift_id, $declaration_date, $time_now, $items_json);
+    // Updated INSERT statement with department and removing purpose for employee
+    $stmt = $conn->prepare("INSERT INTO item_declarations (user_id, fullname, department, shift_id, declaration_date, time_in, items_json) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssisss", $user_id, $fullname, $department, $shift_id, $declaration_date, $time_now, $items_json);
     
     if ($stmt->execute()) {
-        $_SESSION['entry_success'] = "Entry successfully recorded for $target_fullname!";
+        $successTrigger = true;
+        log_audit($conn, $user_id, $fullname, 'Employee', 'ITEM_DECLARATION', "Employee submitted declaration. Dept: $department");
     }
-    header("Location: dashboard.php");
-    exit();
 }
-
-$users_list = $conn->query("SELECT user_id, fullname, role FROM users ORDER BY fullname ASC");
-$schedules_list = $conn->query("SELECT * FROM schedules WHERE status = 'Active'");
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Camp John Hay</title>
+    <title>Employee Dashboard - Glassmorphism</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        /* Glassmorphism Blob Animations */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        /* Minimal Glass Scrollbar just in case items expand too much */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.5); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-800">
+<body class="flex h-screen overflow-hidden bg-slate-50 relative text-slate-800">
 
-    <?php include 'sidebar.php'; ?>
+    <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-gradient-to-br from-blue-50 via-slate-100 to-white">
+        <div class="absolute top-0 -left-10 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob"></div>
+        <div class="absolute top-10 -right-10 w-96 h-96 bg-sky-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-50 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-10 left-1/3 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-40 animate-blob animation-delay-4000"></div>
+    </div>
 
-    <div class="flex-1 flex flex-col h-full overflow-hidden">
-        <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
-            <div>
-                <h2 class="text-xl font-black text-slate-800 tracking-tight">Gate Entry Portal</h2>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Duty: <?php echo htmlspecialchars($current_logged_in_user); ?></p>
-            </div>
-            <button onclick="toggleUserModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-xs font-black transition shadow-lg shadow-blue-500/20">
-                <i class="fas fa-plus mr-2"></i> Register New User
-            </button>
-        </header>
-
-        <main class="flex-1 overflow-y-auto p-6 space-y-8">
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-                    <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
-                        <i class="fas fa-door-open"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Entries Today</p>
-                        <h3 class="text-2xl font-black text-slate-800"><?php echo $total_today; ?></h3>
-                    </div>
+    <div class="relative z-10 flex w-full h-full">
+        <?php include 'sidebar.php'; ?>
+        
+        <main class="flex-1 flex flex-col h-full overflow-hidden">
+            <header class="bg-white/40 backdrop-blur-xl border-b border-white/60 h-24 flex items-center justify-between px-10 shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.03)] z-10">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">Employee Entry</h1>
+                    <p class="text-xs font-bold text-blue-600 mt-1 uppercase tracking-widest drop-shadow-sm">Item Declaration</p>
                 </div>
+            </header>
 
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-                    <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">OJT Logged</p>
-                        <h3 class="text-2xl font-black text-slate-800"><?php echo $ojt_today; ?></h3>
-                    </div>
-                </div>
-
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center gap-5">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
-                        <i class="fas fa-id-badge"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visitors Logged</p>
-                        <h3 class="text-2xl font-black text-slate-800"><?php echo $vst_today; ?></h3>
-                    </div>
-                </div>
-            </div>
-
-            <div class="max-w-4xl mx-auto">
-                <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
-                    <div class="bg-slate-800 p-8 text-white flex justify-between items-center">
-                        <div>
-                            <h3 class="text-2xl font-black">Gate Pass Declaration</h3>
-                            <p class="text-slate-400 text-sm">Log entry and declare property items</p>
-                        </div>
-                        <i class="fas fa-shield-alt text-4xl text-slate-700"></i>
-                    </div>
-
-                    <form action="" method="POST" class="p-8 space-y-8">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex-1 p-6 h-full overflow-hidden">
+                <form action="" method="POST" class="h-full flex gap-6">
+                    
+                    <div class="w-1/3 bg-white/40 backdrop-blur-xl rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] border border-white/60 p-8 flex flex-col h-full">
+                        <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                            <i class="fas fa-user-circle text-blue-500"></i> Identity Details
+                        </h2>
+                        
+                        <div class="space-y-5 flex-1">
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">User Search</label>
-                                <select name="target_user_id" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                                    <option value="" disabled selected>Select Personnel...</option>
-                                    <?php while($u = $users_list->fetch_assoc()): ?>
-                                        <option value="<?php echo $u['user_id']; ?>">
-                                            <?php echo htmlspecialchars($u['fullname']); ?> (<?php echo $u['user_id']; ?>)
-                                        </option>
-                                    <?php endwhile; ?>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                                <select name="fullname" required class="w-full bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-xl p-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all text-slate-700">
+                                    <option value="" disabled selected>Select your name</option>
+                                    <?php
+                                    $users = $conn->query("SELECT fullname FROM users ORDER BY fullname ASC");
+                                    while($user = $users->fetch_assoc()) {
+                                        echo "<option value='{$user['fullname']}'>{$user['fullname']}</option>";
+                                    }
+                                    ?>
                                 </select>
                             </div>
+                            
                             <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Shift Assigned</label>
-                                <select name="shift_id" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all">
-                                    <option value="" disabled selected>Select Shift...</option>
-                                    <?php while($row = $schedules_list->fetch_assoc()): ?>
-                                        <option value="<?php echo $row['id']; ?>">
-                                            <?php echo htmlspecialchars($row['shift_name']); ?>
-                                        </option>
-                                    <?php endwhile; ?>
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Department</label>
+                                <input type="text" name="department" required placeholder="e.g. Front Office, F&B" class="w-full bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-xl p-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all text-slate-700 placeholder-slate-400">
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Assigned Shift</label>
+                                <select name="shift_id" required class="w-full bg-white/50 backdrop-blur-md border border-white/60 shadow-sm rounded-xl p-3.5 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/80 transition-all text-slate-700">
+                                    <option value="" disabled selected>Select active schedule...</option>
+                                    <?php
+                                    $s = $conn->query("SELECT * FROM schedules WHERE status = 'Active'");
+                                    while($row = $s->fetch_assoc()) {
+                                        echo "<option value='{$row['id']}'>{$row['shift_name']} (".date("g:i A", strtotime($row['time_from']))." - ".date("g:i A", strtotime($row['time_to'])).")</option>";
+                                    }
+                                    ?>
                                 </select>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
-                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block border-b pb-2">Item Checklist</label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
-                                <?php
-                                $gateItems = [
-                                    'shirt' => 'Shirt/Blouse', 'pants' => 'Pants/Jeans/Skirt', 'bag' => 'Bag', 
-                                    'wallet' => 'Wallet', 'belt' => 'Belt', 'jacket' => 'Jacket', 
-                                    'cap' => 'Cap', 'cosmetics' => 'Cosmetics', 'jewelries' => 'Jewelries', 
-                                    'shoes' => 'Shoes', 'tumbler' => 'Tumbler', 'charger' => 'Charger'
-                                ];
-                                foreach ($gateItems as $key => $label): ?>
-                                    <div class="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 hover:bg-white hover:shadow-md transition-all">
-                                        <label class="flex items-center cursor-pointer">
-                                            <input type="checkbox" name="items[]" value="<?php echo $key; ?>" id="chk_<?php echo $key; ?>" onchange="toggleItemFields('<?php echo $key; ?>')" class="w-5 h-5 rounded-lg border-slate-300 text-blue-600">
-                                            <span class="ml-4 font-bold text-slate-700"><?php echo $label; ?></span>
-                                        </label>
-                                        <div id="fields_<?php echo $key; ?>" class="hidden mt-4 pl-9 space-y-3">
-                                            <?php if($key == 'wallet'): ?>
-                                                <input type="number" name="wallet_amt" placeholder="Amount (₱)" class="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                            <?php endif; ?>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <input type="number" name="<?php echo $key; ?>_qty" placeholder="QTY" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                                <input type="text" name="<?php echo $key; ?>_brand" placeholder="Brand" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
-                                                <input type="text" name="<?php echo $key; ?>_color" placeholder="Color" class="bg-white border border-slate-200 rounded-xl p-3 text-xs">
+                        <div class="mt-6 pt-6 border-t border-white/50">
+                            <button type="submit" name="submit_declaration" class="w-full bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-3">
+                                <span>Submit Entry</span> <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="w-2/3 bg-white/40 backdrop-blur-xl rounded-[2rem] shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] border border-white/60 p-8 flex flex-col h-full overflow-y-auto">
+                        <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3 shrink-0">
+                            <i class="fas fa-box-open text-blue-500"></i> Gate Pass Declarations
+                        </h2>
+                        
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            <?php
+                            $categories = [
+                                'Apparel' => [
+                                    'shirt' => 'Shirt/Blouse', 'pants' => 'Pants/Skirt', 
+                                    'jacket' => 'Jacket', 'cap' => 'Cap', 'shoes' => 'Shoes', 'belt' => 'Belt'
+                                ],
+                                'Equipments & Electronics' => [
+                                    'laptop' => 'Laptop', 'phone' => 'Mobile Phone', 
+                                    'tumbler' => 'Tumbler', 'charger' => 'Charger'
+                                ],
+                                'Personal Items' => [
+                                    'bag' => 'Bag', 'wallet' => 'Wallet', 
+                                    'cosmetics' => 'Cosmetics', 'jewelries' => 'Jewelries'
+                                ]
+                            ];
+
+                            foreach ($categories as $catName => $items): ?>
+                                <div class="bg-white/20 backdrop-blur-sm border border-white/50 rounded-2xl p-5 shadow-sm">
+                                    <h4 class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-4 border-b border-white/40 pb-2"><?php echo $catName; ?></h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <?php foreach ($items as $key => $label): ?>
+                                            <div class="col-span-1">
+                                                <label class="flex items-center cursor-pointer group hover:bg-white/40 p-2 rounded-xl transition-colors">
+                                                    <input type="checkbox" name="items[]" value="<?php echo $key; ?>" id="chk_<?php echo $key; ?>" onchange="toggleItemFields('<?php echo $key; ?>')" class="w-4 h-4 rounded border-white/60 text-blue-600 focus:ring-blue-500/50 bg-white/50 cursor-pointer">
+                                                    <span class="ml-3 font-bold text-sm text-slate-700 group-hover:text-blue-700 transition-colors"><?php echo $label; ?></span>
+                                                </label>
+                                                <div id="fields_<?php echo $key; ?>" class="hidden mt-2 p-3 bg-white/40 border border-white/50 rounded-xl space-y-2 backdrop-blur-sm shadow-inner">
+                                                    <?php if($key == 'wallet'): ?>
+                                                        <input type="number" name="wallet_amt" placeholder="Amount (₱)" class="w-full bg-white/60 border border-white/60 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                                    <?php endif; ?>
+                                                    <div class="flex gap-2">
+                                                        <input type="number" name="<?php echo $key; ?>_qty" placeholder="Qty" class="w-1/3 bg-white/60 border border-white/60 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                                        <input type="text" name="<?php echo $key; ?>_brand" placeholder="Brand" class="w-2/3 bg-white/60 border border-white/60 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                                    </div>
+                                                    <input type="text" name="<?php echo $key; ?>_color" placeholder="Color" class="w-full bg-white/60 border border-white/60 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                                </div>
                                             </div>
-                                        </div>
+                                        <?php endforeach; ?>
                                     </div>
-                                <?php endforeach; ?>
+                                </div>
+                            <?php endforeach; ?>
+
+                            <div class="bg-white/20 backdrop-blur-sm border border-white/50 rounded-2xl p-5 shadow-sm xl:col-span-2">
+                                <h4 class="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-4 border-b border-white/40 pb-2">Miscellaneous</h4>
+                                <label class="flex items-center cursor-pointer group hover:bg-white/40 p-2 rounded-xl transition-colors w-fit">
+                                    <input type="checkbox" name="items[]" value="others" id="chk_others" onchange="toggleItemFields('others')" class="w-4 h-4 rounded border-white/60 text-blue-600 focus:ring-blue-500/50 bg-white/50 cursor-pointer">
+                                    <span class="ml-3 font-bold text-sm text-slate-700 group-hover:text-blue-700 transition-colors">OTHER ITEMS</span>
+                                </label>
+                                <div id="fields_others" class="hidden mt-3 p-4 bg-white/40 border border-white/50 rounded-xl space-y-3 backdrop-blur-sm shadow-inner">
+                                    <input type="text" name="others_name" placeholder="Item Name / Description" class="w-full bg-white/60 border border-white/60 rounded-lg p-3 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <input type="number" name="others_qty" placeholder="QTY" class="w-full bg-white/60 border border-white/60 rounded-lg p-3 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                        <input type="text" name="others_brand" placeholder="Brand" class="w-full bg-white/60 border border-white/60 rounded-lg p-3 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                        <input type="text" name="others_color" placeholder="Color" class="w-full bg-white/60 border border-white/60 rounded-lg p-3 text-xs font-semibold focus:ring-2 focus:ring-blue-400 outline-none">
+                                    </div>
+                                </div>
                             </div>
+                            
                         </div>
-
-                        <button type="submit" name="submit_declaration" class="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-500/30 hover:bg-blue-700 hover:-translate-y-1 transition-all">
-                            Complete Entry Log <i class="fas fa-check-circle ml-2"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- AUDIT LOGS SECTION -->
-            <div class="max-w-6xl mx-auto mt-12">
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div>
-                            <h3 class="text-xl font-black text-slate-800 tracking-tight">Your Activity Logs</h3>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Personal Audit Trail</p>
-                        </div>
-                        <form method="GET" class="flex items-center gap-2">
-                            <select name="log_status" onchange="this.form.submit()" class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="0" <?php echo (!isset($_GET['log_status']) || $_GET['log_status'] == '0') ? 'selected' : ''; ?>>Active Logs (Last 24h)</option>
-                                <option value="1" <?php echo (isset($_GET['log_status']) && $_GET['log_status'] == '1') ? 'selected' : ''; ?>>Archived Logs</option>
-                            </select>
-                        </form>
                     </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                                    <th class="px-8 py-4">Time</th>
-                                    <th class="px-8 py-4">Action</th>
-                                    <th class="px-8 py-4">Details</th>
-                                    <th class="px-8 py-4">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-50">
-                                <?php
-                                $log_status = isset($_GET['log_status']) ? (int)$_GET['log_status'] : 0;
-                                $user_id = $_SESSION['user_id'];
-                                $logs_stmt = $conn->prepare("SELECT * FROM audit_logs WHERE user_id = ? AND is_archived = ? ORDER BY created_at DESC LIMIT 10");
-                                $logs_stmt->bind_param("si", $user_id, $log_status);
-                                $logs_stmt->execute();
-                                $logs_res = $logs_stmt->get_result();
-
-                                if ($logs_res->num_rows > 0):
-                                    while ($log = $logs_res->fetch_assoc()):
-                                ?>
-                                    <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-8 py-4">
-                                            <div class="flex flex-col">
-                                                <span class="text-xs font-bold text-slate-700"><?php echo date("M d, Y", strtotime($log['created_at'])); ?></span>
-                                                <span class="text-[10px] font-bold text-slate-400"><?php echo date("h:i A", strtotime($log['created_at'])); ?></span>
-                                            </div>
-                                        </td>
-                                        <td class="px-8 py-4">
-                                            <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-blue-100">
-                                                <?php echo htmlspecialchars($log['action']); ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-8 py-4">
-                                            <p class="text-xs text-slate-500 font-medium truncate max-w-xs" title="<?php echo htmlspecialchars($log['details']); ?>">
-                                                <?php echo htmlspecialchars($log['details']); ?>
-                                            </p>
-                                        </td>
-                                        <td class="px-8 py-4">
-                                            <?php if ($log['is_archived']): ?>
-                                                <span class="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] uppercase">
-                                                    <i class="fas fa-archive"></i> Archived
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="flex items-center gap-1.5 text-emerald-500 font-bold text-[10px] uppercase">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Recent
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php 
-                                    endwhile;
-                                else:
-                                ?>
-                                    <tr>
-                                        <td colspan="4" class="px-8 py-12 text-center text-slate-400 text-xs font-bold italic">
-                                            No <?php echo $log_status ? 'archived' : 'recent'; ?> activity logs found.
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                </form>
             </div>
         </main>
     </div>
-
-    <div id="createUserModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl">
-            <div class="p-8 border-b border-slate-100 flex justify-between items-center">
-                <h3 class="font-black text-xl text-slate-800">New Personnel Registration</h3>
-                <button onclick="toggleUserModal()" class="text-slate-400 hover:text-rose-500"><i class="fas fa-times text-2xl"></i></button>
-            </div>
-            <form action="" method="POST" class="p-8 space-y-5">
-                <input type="hidden" name="create_user" value="1">
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Full Name</label>
-                    <input type="text" name="new_fullname" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm mt-1 outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</label>
-                    <input type="email" name="new_email" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm mt-1 outline-none focus:border-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</label>
-                        <select name="new_role" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm mt-1 outline-none">
-                            <option value="Employee">Employee</option>
-                            <option value="OJT">OJT</option>
-                            <option value="Visitor">Visitor</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dept</label>
-                        <input type="text" name="new_department" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm mt-1">
-                    </div>
-                </div>
-                <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black mt-4 hover:bg-black transition shadow-lg">Save & Generate ID</button>
-            </form>
-        </div>
-    </div>
-
     <script>
         function toggleItemFields(key) {
-            const fields = document.getElementById('fields_' + key);
-            fields.classList.toggle('hidden', !document.getElementById('chk_' + key).checked);
+            document.getElementById('fields_' + key).classList.toggle('hidden', !document.getElementById('chk_' + key).checked);
         }
-        function toggleUserModal() {
-            document.getElementById('createUserModal').classList.toggle('hidden');
-        }
+        <?php if($successTrigger): ?>
+        Swal.fire({ 
+            icon: 'success', 
+            title: 'Entry Submitted!', 
+            text: 'Your shift entry and item declaration have been recorded.', 
+            confirmButtonColor: '#2563eb',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdrop: 'rgba(0, 0, 0, 0.3)'
+        });
+        <?php endif; ?>
     </script>
 </body>
 </html>

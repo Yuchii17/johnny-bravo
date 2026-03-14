@@ -1,66 +1,36 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF']);
 
-function getLinkStyle($pageName, $currentPage) {
-    $baseStyle = "flex items-center gap-3 px-4 py-3 mx-4 my-1 rounded-xl transition-all duration-300 group ";
-    if ($currentPage == $pageName) {
-        return $baseStyle . "bg-blue-600 text-white shadow-md shadow-blue-500/20 font-semibold";
-    } else {
-        return $baseStyle . "text-slate-500 hover:bg-slate-50 hover:text-blue-600 font-medium hover:translate-x-1";
-    }
+function getLinkStyle($page, $currentPage) {
+    return $page == $currentPage 
+        ? 'bg-white/70 shadow-sm text-blue-700 border border-white/60 backdrop-blur-md' 
+        : 'text-slate-600 hover:bg-white/40 hover:text-blue-600 border border-transparent transition-all';
 }
 
-function getIconStyle($pageName, $currentPage) {
-    if ($currentPage == $pageName) {
-        return "text-white";
-    } else {
-        return "text-slate-400 group-hover:text-blue-600 transition-colors duration-300";
-    }
+function getIconStyle($page, $currentPage) {
+    return $page == $currentPage 
+        ? 'text-blue-600 drop-shadow-sm' 
+        : 'text-slate-400 group-hover:text-blue-500 transition-colors';
 }
 ?>
-
-<aside class="w-72 bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-20">
-    
-    <div class="h-24 flex items-center px-6 border-b border-slate-100 bg-gradient-to-b from-slate-50/50 to-white">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-white flex items-center justify-center ring-2 ring-slate-100">
-                <img src="../asset/john-logo.jpg" alt="Logo" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg\'>JH</div>'">
-            </div>
-            <div class="flex flex-col">
-                <h1 class="text-[15px] font-extrabold text-slate-800 tracking-tight leading-tight">Camp John Hay</h1>
-                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-[0.15em] mt-0.5">Employee Portal</p>
-            </div>
-        </div>
+<aside class="w-64 bg-white/40 backdrop-blur-xl border-r border-white/60 flex flex-col shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative">
+    <div class="h-24 flex items-center justify-center border-b border-white/50 mx-6">
+        <a href="dashboard.php" class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 tracking-tight drop-shadow-sm">Employee Portal</a>
     </div>
-
-    <div class="px-8 py-4 text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-2">Main Menu</div>
-    
-    <nav class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden">
-        <a href="dashboard.php" class="<?php echo getLinkStyle('dashboard.php', $currentPage); ?>">
-            <i class="fas fa-chart-pie w-5 text-center <?php echo getIconStyle('dashboard.php', $currentPage); ?>"></i> Dashboard
+    <nav class="flex-1 p-6 space-y-3">
+        <a href="dashboard.php" class="<?php echo getLinkStyle('dashboard.php', $currentPage); ?> flex items-center gap-4 px-4 py-3.5 rounded-xl font-bold group">
+            <i class="fas fa-tachometer-alt w-5 text-center <?php echo getIconStyle('dashboard.php', $currentPage); ?>"></i> Dashboard
         </a>
-        
-        </nav>
-
-    <div class="mt-auto">
-        <a href="../logout.php" class="flex items-center gap-3 px-4 py-3 mx-4 mb-4 rounded-xl text-rose-500 hover:bg-rose-50 font-bold transition-all duration-300 hover:translate-x-1 group">
-            <i class="fas fa-power-off w-5 text-center text-rose-400 group-hover:text-rose-600 transition-colors"></i> Logout
+        <a href="users.php" class="<?php echo getLinkStyle('users.php', $currentPage); ?> flex items-center gap-4 px-4 py-3.5 rounded-xl font-bold group">
+            <i class="fas fa-users w-5 text-center <?php echo getIconStyle('users.php', $currentPage); ?>"></i> Users
         </a>
-
-        <div class="p-6 border-t border-slate-100">
-            <div class="bg-slate-50 rounded-2xl p-4 text-center border border-slate-100 shadow-sm relative overflow-hidden group hover:bg-slate-100 transition-colors">
-                <div class="absolute -right-4 -top-4 w-16 h-16 bg-blue-100 rounded-full opacity-50 transition-transform group-hover:scale-150"></div>
-                
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 relative z-10">System Status</p>
-                
-                <div class="flex items-center justify-center gap-2 relative z-10">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    <p class="text-[13px] font-bold text-slate-700">Online & Secure</p>
-                </div>
-            </div>
-        </div>
+        <a href="schedules.php" class="<?php echo getLinkStyle('schedules.php', $currentPage); ?> flex items-center gap-4 px-4 py-3.5 rounded-xl font-bold group">
+            <i class="fas fa-calendar-alt w-5 text-center <?php echo getIconStyle('schedules.php', $currentPage); ?>"></i> Schedules
+        </a>
+    </nav>
+    <div class="p-6 border-t border-white/50">
+        <a href="../index.php" class="flex items-center justify-center gap-3 px-4 py-3.5 rounded-xl font-bold text-rose-600 bg-white/40 border border-white/50 backdrop-blur-md hover:bg-rose-50 hover:border-rose-200 hover:shadow-sm transition-all">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
     </div>
 </aside>
